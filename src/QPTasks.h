@@ -1089,8 +1089,6 @@ private:
 	Eigen::VectorXd C_;
 };
 
-
-
 class TASKS_DLLAPI GripperTorqueTask : public Task
 {
 public:
@@ -1326,6 +1324,51 @@ public:
 private:
 	tasks::VectorOrientationTask vot_;
 	int robotIndex_;
+};
+
+class TASKS_DLLAPI FrictionConeTask : public Task
+{
+public:
+	FrictionConeTask(ContactId contactId, double stiffness, double weight):
+		Task(weight),
+		contactId_(contactId),
+		begin_(0),
+		stiffness_(stiffness),
+		stiffnessSqrt_(2*std::sqrt(stiffness)),
+		conesJac_(),
+		error_(Eigen::Vector3d::Zero()),
+		errorD_(Eigen::Vector3d::Zero()),
+		Q_(),
+		C_()
+	{}
+
+	virtual std::pair<int, int> begin() const
+	{
+		return std::make_pair(begin_, begin_);
+	}
+
+	void error(const Eigen::Vector3d& error);
+	void errorD(const Eigen::Vector3d& errorD);
+
+	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+		const SolverData& data);
+	virtual void update(const std::vector<rbd::MultiBody>& mbs,
+		const std::vector<rbd::MultiBodyConfig>& mbcs,
+		const SolverData& data);
+
+	virtual const Eigen::MatrixXd& Q() const;
+	virtual const Eigen::VectorXd& C() const;
+
+private:
+	ContactId contactId_;
+	int begin_;
+
+	double stiffness_, stiffnessSqrt_;
+	Eigen::MatrixXd conesJac_;
+	Eigen::Vector3d error_, errorD_;
+
+	Eigen::MatrixXd Q_;
+	Eigen::VectorXd C_;
 };
 
 } // namespace qp

@@ -1956,7 +1956,84 @@ const Eigen::VectorXd& VectorOrientationTask::normalAcc()
 	return vot_.normalAcc();
 }
 
+/**
+	*														FrictionConeTask
+	*/
+
+void FrictionConeTask::error(const Eigen::Vector3d& error)
+{
+	error_ = error;
+}
+
+
+void FrictionConeTask::errorD(const Eigen::Vector3d& errorD)
+{
+	errorD_ = errorD;
+}
+
+
+void FrictionConeTask::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */,
+	const SolverData& data)
+{
+	int nrLambda = 0;
+	begin_ = data.lambdaBegin();
+	std::vector<FrictionCone> cones;
+	int curLambda = 0;
+
+	if(nrLambda == 0)
+	{
+		for(const BilateralContact& uc: data.allContacts())
+		{
+			curLambda = uc.nrLambda();
+			if(uc.contactId == contactId_)
+			{
+				nrLambda = curLambda;
+				cones = uc.r1Cones;
+				break;
+			}
+
+			begin_ += curLambda;
+		}
+	}
+
+	conesJac_.resize(3, nrLambda);
+	int index = 0;
+	for(const FrictionCone& fc: cones)
+	{
+		for(const Eigen::Vector3d& gen: fc.generators)
+		{
+			conesJac_.col(index) = gen;
+			++index;
+		}
+	}
+
+	Q_.resize(nrLambda, nrLambda);
+	Q_.noalias() = conesJac_.transpose()*conesJac_;
+	C_.setZero(nrLambda);
+}
+
+
+void FrictionConeTask::update(const std::vector<rbd::MultiBody>& /* mbs */,
+	const std::vector<rbd::MultiBodyConfig>& /* mbcs */,
+	const SolverData& /* data */)
+{
+	/*C_.noalias() = -conesJac_.transpose()*
+			(stiffness_*error_ - stiffnessSqrt_*errorD_);*/
+          C_.noalias() = -conesJac_.transpose()*error_;
+}
+
+
+const Eigen::MatrixXd& FrictionConeTask::Q() const
+{
+	return Q_;
+}
+
+
+const Eigen::VectorXd& FrictionConeTask::C() const
+{
+	return C_;
+}
+
 } // namespace qp
 
 } // namespace tasks
-
