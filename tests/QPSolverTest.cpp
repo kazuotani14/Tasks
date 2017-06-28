@@ -43,12 +43,12 @@
 #include <sch/CD/CD_Pair.h>
 
 // Tasks
-#include "Bounds.h"
-#include "QPConstr.h"
-#include "QPContactConstr.h"
-#include "QPMotionConstr.h"
-#include "QPSolver.h"
-#include "QPTasks.h"
+#include "Tasks/Bounds.h"
+#include "Tasks/QPConstr.h"
+#include "Tasks/QPContactConstr.h"
+#include "Tasks/QPMotionConstr.h"
+#include "Tasks/QPSolver.h"
+#include "Tasks/QPTasks.h"
 
 // Arms
 #include "arms.h"
@@ -716,7 +716,7 @@ BOOST_AUTO_TEST_CASE(QPMimicJointTest)
 
 	mbcs[0] = mbcInit;
 	pt.posture({{}, {0.2}, {-0.2}, {0.5}});
-	for(int i = 0; i < 1000; ++i)
+	for(int i = 0; i < 2000; ++i)
 	{
 		BOOST_REQUIRE(solver.solve(mbs, mbcs));
 		eulerIntegration(mbs[0], mbcs[0], 0.001);
