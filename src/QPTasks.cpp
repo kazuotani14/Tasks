@@ -1956,7 +1956,113 @@ const Eigen::VectorXd& VectorOrientationTask::normalAcc()
 	return vot_.normalAcc();
 }
 
+
+/**
+	*														FrictionConeTask
+	*/
+
+FrictionConeTask::FrictionConeTask(double stiffness, double weight):
+	Task(weight),
+	begin_(0),
+	stiffness_(stiffness),
+	damping_(2*std::sqrt(stiffness)),
+	alpha_des_(),
+	Q_(),
+	C_()
+{
+	std::cout << "FrictionConeTask init" << std::endl;
+}
+
+void print_vector3d_hor(const Eigen::Vector3d& v)
+{
+	std::cout << v(0) << " " << v(1) << " " << v(2) << "\n";
+}
+
+// Update Q_ and C_ matrices, based on friction cone
+// X=[q_ddot, lambda, tau]. Q will be in lambda
+void FrictionConeTask::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */,
+									const SolverData& data)
+{
+	std::cout << "FrictionConeTask - updateNrVars" << std::endl;
+	begin_ = data.lambdaBegin();
+
+	std::vector<Eigen::MatrixXd> Q_diag;
+	int nrLambda = data.nrContacts() * 16; // each planar contact has 4 cones, 16 lambdas
+	Q_.setZero(nrLambda, nrLambda);
+    C_.setZero(nrLambda);
+
+	Eigen::MatrixXd eye3 = Eigen::MatrixXd::Identity(3,3);
+
+	int currentLambda = 0;
+	for(const BilateralContact& contact: data.allContacts())
+	{
+		std::vector<FrictionCone> cones = contact.r1Cones;
+		for(const FrictionCone& fc: cones)
+		{
+			// Find normal vector
+			Eigen::Vector3d v_n = Eigen::Vector3d::Zero();
+			for(const Eigen::Vector3d& vec : fc.generators)
+			{
+				v_n += vec;
+			}
+			v_n = v_n / v_n.norm();
+
+			// Construct friction cone matrix
+			Eigen::MatrixXd K(3,4);
+			int r = 0;
+			for (const Eigen::Vector3d& vec : fc.generators)
+			{
+				K.row(r++) = vec;
+			}
+
+			// Make Jacobian F = G * \lambda
+			Eigen::MatrixXd G = (eye3 - v_n*v_n.transpose()) * K;
+
+			std::cout << "G: \n" << G << std::endl; 
+
+			// Fill Q block
+			Q_.block(currentLambda, currentLambda, 4, 4) = G;
+			currentLambda+= 4;
+		}
+	}
+}
+
+void FrictionConeTask::update(const std::vector<rbd::MultiBody>& /* mbs */,
+	const std::vector<rbd::MultiBodyConfig>& /* mbcs */,
+	const SolverData& /* data */)
+{
+	// should this be doing anything?~
+}
+
+const Eigen::MatrixXd& FrictionConeTask::Q() const
+{
+	return Q_;
+}
+
+const Eigen::VectorXd& FrictionConeTask::C() const
+{
+	return C_;
+}
+
+void FrictionConeTask::stiffness(double stiffness)
+{
+	stiffness_ = stiffness;
+	damping_ = 2.*std::sqrt(stiffness);
+}
+
+void FrictionConeTask::gains(double stiffness)
+{
+	stiffness_ = stiffness;
+	damping_ = 2.*std::sqrt(stiffness);
+}
+
+void FrictionConeTask::gains(double stiffness, double damping)
+{
+	stiffness_ = stiffness;
+	damping_ = damping;
+}
+
+
 } // namespace qp
 
 } // namespace tasks
-

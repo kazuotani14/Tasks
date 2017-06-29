@@ -1328,6 +1328,44 @@ private:
 	int robotIndex_;
 };
 
+// Should FrictionConeTask be for each robot, or for each contact?
+class TASKS_DLLAPI FrictionConeTask : public Task //Task is defined in Tasks/QPSolver.h
+{
+public:
+	FrictionConeTask(double stiffness, double weight);
+
+	// Setpoint gains
+	double stiffness() const { return stiffness_; }
+	double damping() const { return damping_; }
+
+	void stiffness(double stiffness);
+	void gains(double stiffness);
+	void gains(double stiffness, double damping);
+
+	virtual std::pair<int, int> begin() const
+	{
+		return std::make_pair(begin_, begin_);
+	}
+
+	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+							  const SolverData& data);
+	virtual void update(const std::vector<rbd::MultiBody>& mbs,
+						const std::vector<rbd::MultiBodyConfig>& mbcs,
+						const SolverData& data);
+
+	virtual const Eigen::MatrixXd& Q() const;
+	virtual const Eigen::VectorXd& C() const;
+
+private:
+	int begin_;
+	double stiffness_, damping_;
+
+	Eigen::VectorXd alpha_des_;
+
+	Eigen::MatrixXd Q_;
+	Eigen::VectorXd C_;
+};
+
 } // namespace qp
 
 } // namespace tasks
