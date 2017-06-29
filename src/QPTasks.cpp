@@ -1961,21 +1961,25 @@ const Eigen::VectorXd& VectorOrientationTask::normalAcc()
 	*														FrictionConeTask
 	*/
 
-FrictionConeTask::FrictionConeTask(double stiffness, double weight):
+// void print_vector3d_hor(const Eigen::Vector3d& v)
+// {
+// 	std::cout << v(0) << " " << v(1) << " " << v(2) << "\n";
+// }
+
+// TODO make more general, taking arbitrary alpha or options
+FrictionConeTask::FrictionConeTask(double stiffness, double weight, double dt):
 	Task(weight),
 	begin_(0),
+	dt_(dt),
+	lambda1_(), lambda2_(),
 	stiffness_(stiffness),
 	damping_(2*std::sqrt(stiffness)),
-	alpha_des_(),
+	k_(), d_(),
+	alpha_ref_(),
 	Q_(),
 	C_()
 {
 	std::cout << "FrictionConeTask init" << std::endl;
-}
-
-void print_vector3d_hor(const Eigen::Vector3d& v)
-{
-	std::cout << v(0) << " " << v(1) << " " << v(2) << "\n";
 }
 
 // Update Q_ and C_ matrices, based on friction cone
@@ -1983,17 +1987,28 @@ void print_vector3d_hor(const Eigen::Vector3d& v)
 void FrictionConeTask::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */,
 									const SolverData& data)
 {
-	std::cout << "FrictionConeTask - updateNrVars" << std::endl;
 	begin_ = data.lambdaBegin();
 
 	std::vector<Eigen::MatrixXd> Q_diag;
-	int nrLambda = data.nrContacts() * 16; // each planar contact has 4 cones, 16 lambdas
-	Q_.setZero(nrLambda, nrLambda);
-    C_.setZero(nrLambda);
+	nrLambda_ = data.nrContacts() * 16; // each planar contact has 4 cones, 16 lambdas
+	Q_.setZero(nrLambda_, nrLambda_);
+    C_.setZero(nrLambda_);
+	G_.setZero(3*nrLambda_/4, 3*nrLambda_/4);
 
+	lambda1_.setZero(nrLambda_);
+	lambda2_.setZero(nrLambda_);
+
+	k_ = Eigen::VectorXd(nrLambda_) * stiffness_;
+	d_ = Eigen::VectorXd(nrLambda_) * damping_;
+
+	// Calculate Q once
+	Eigen::VectorXd Gamma = k_ + d_/dt_ + 1/pow(dt_,2)*Eigen::VectorXd::Ones(nrLambda_);
+	Q_ = Gamma * Gamma.transpose();
+
+	// Calculate G matrix once
 	Eigen::MatrixXd eye3 = Eigen::MatrixXd::Identity(3,3);
 
-	int currentLambda = 0;
+	int force_idx = 0;
 	for(const BilateralContact& contact: data.allContacts())
 	{
 		std::vector<FrictionCone> cones = contact.r1Cones;
@@ -2015,23 +2030,42 @@ void FrictionConeTask::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */
 				K.row(r++) = vec;
 			}
 
-			// Make Jacobian F = G * \lambda
 			Eigen::MatrixXd G = (eye3 - v_n*v_n.transpose()) * K;
-
-			std::cout << "G: \n" << G << std::endl; 
-
-			// Fill Q block
-			Q_.block(currentLambda, currentLambda, 4, 4) = G;
-			currentLambda+= 4;
+			G_.block(3*force_idx, 4*force_idx, 3, 4) = G;
+			force_idx++;
 		}
 	}
+
+	// C is recalculated at each timestep
+	calcC();
+	std::cout << "FrictionConeTask: updateNrVars done" << std::endl;
 }
 
-void FrictionConeTask::update(const std::vector<rbd::MultiBody>& /* mbs */,
-	const std::vector<rbd::MultiBodyConfig>& /* mbcs */,
-	const SolverData& /* data */)
+void FrictionConeTask::update(const std::vector<rbd::MultiBody>& /*mbs*/ ,
+	const std::vector<rbd::MultiBodyConfig>& /*mbcs*/,
+	const SolverData& /*data*/)
 {
-	// should this be doing anything?~
+	// TODO update lambda1, lambda2 -> update C_
+	// Can't access lambdas from here - need to be fed in from somewhere else
+
+	calcC();
+}
+
+void FrictionConeTask::calcC()
+{
+	std::cout << "FrictionConeTask: start calcC" << std::endl;
+	Eigen::VectorXd ones = Eigen::VectorXd::Ones(nrLambda_);
+	Eigen::VectorXd gamma = G_ * ((-2*lambda1_/dt_) * (1/dt_ + damping_/2) + lambda2_/pow(dt_,2)*ones); // TODO add beta, alpha_ref_
+	C_ = 2*gamma.transpose();
+	std::cout << "FrictionConeTask: end calcC" << std::endl;
+}
+
+// Updates lambda vectors from past solutions, to use in calcC()
+void FrictionConeTask::pushLastLambda(Eigen::VectorXd& l)
+{
+	// std::cout << "received lambda vector" << std::endl;
+	lambda2_ = lambda1_;
+	lambda1_ = l;
 }
 
 const Eigen::MatrixXd& FrictionConeTask::Q() const
@@ -2061,7 +2095,6 @@ void FrictionConeTask::gains(double stiffness, double damping)
 	stiffness_ = stiffness;
 	damping_ = damping;
 }
-
 
 } // namespace qp
 

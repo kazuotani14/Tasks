@@ -1332,7 +1332,7 @@ private:
 class TASKS_DLLAPI FrictionConeTask : public Task //Task is defined in Tasks/QPSolver.h
 {
 public:
-	FrictionConeTask(double stiffness, double weight);
+	FrictionConeTask(double stiffness, double weight, double dt);
 
 	// Setpoint gains
 	double stiffness() const { return stiffness_; }
@@ -1347,6 +1347,9 @@ public:
 		return std::make_pair(begin_, begin_);
 	}
 
+	void calcC();
+	void pushLastLambda(Eigen::VectorXd& lambda1);
+
 	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
 							  const SolverData& data);
 	virtual void update(const std::vector<rbd::MultiBody>& mbs,
@@ -1358,9 +1361,16 @@ public:
 
 private:
 	int begin_;
-	double stiffness_, damping_;
+	int nrLambda_;
+	double dt_;
 
-	Eigen::VectorXd alpha_des_;
+	Eigen::VectorXd lambda1_, lambda2_; // past lambdas for finite differencing
+
+	double stiffness_, damping_;
+	Eigen::VectorXd k_, d_;
+	Eigen::MatrixXd G_;
+
+	Eigen::VectorXd alpha_ref_;
 
 	Eigen::MatrixXd Q_;
 	Eigen::VectorXd C_;
