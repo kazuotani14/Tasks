@@ -19,7 +19,7 @@
 
 // includes
 // Eigen
-#include <Eigen/Core>
+#include <Eigen/Dense>
 
 // Tasks
 #include "Tasks.h"
@@ -1333,6 +1333,7 @@ class TASKS_DLLAPI FrictionConeTask : public Task //Task is defined in Tasks/QPS
 {
 public:
 	FrictionConeTask(double stiffness, double weight, double dt);
+	// FrictionConeTask(double stiffness, double weight, double dt, Eigen::Vector3d& com_init);
 
 	// Setpoint gains
 	double stiffness() const { return stiffness_; }
@@ -1369,6 +1370,8 @@ private:
 	double stiffness_, damping_;
 	Eigen::VectorXd k_, d_;
 	Eigen::MatrixXd G_;
+    Eigen::MatrixXd Gamma_;
+	// Eigen::Vector3d com_;
 
 	Eigen::VectorXd alpha_ref_;
 

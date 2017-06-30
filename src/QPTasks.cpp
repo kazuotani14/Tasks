@@ -1974,7 +1974,7 @@ FrictionConeTask::FrictionConeTask(double stiffness, double weight, double dt):
 	lambda1_(), lambda2_(),
 	stiffness_(stiffness),
 	damping_(2*std::sqrt(stiffness)),
-	k_(), d_(),
+	k_(), d_(), G_(), Gamma_(),
 	alpha_ref_(),
 	Q_(),
 	C_()
@@ -2001,9 +2001,6 @@ void FrictionConeTask::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */
 	k_ = Eigen::VectorXd(nrLambda_) * stiffness_;
 	d_ = Eigen::VectorXd(nrLambda_) * damping_;
 
-	// Calculate Q once
-	Eigen::VectorXd Gamma = k_ + d_/dt_ + 1/pow(dt_,2)*Eigen::VectorXd::Ones(nrLambda_);
-	Q_ = Gamma * Gamma.transpose();
 
 	// Calculate G matrix once
 	Eigen::MatrixXd eye3 = Eigen::MatrixXd::Identity(3,3);
@@ -2014,27 +2011,26 @@ void FrictionConeTask::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */
 		std::vector<FrictionCone> cones = contact.r1Cones;
 		for(const FrictionCone& fc: cones)
 		{
-			// Find normal vector
+			// Find normal vector and construct friction cone matrix
 			Eigen::Vector3d v_n = Eigen::Vector3d::Zero();
+			int r = 0;
+			Eigen::MatrixXd K(3,4);
 			for(const Eigen::Vector3d& vec : fc.generators)
 			{
 				v_n += vec;
+				K.col(r++) = vec;
 			}
 			v_n = v_n / v_n.norm();
-
-			// Construct friction cone matrix
-			Eigen::MatrixXd K(3,4);
-			int r = 0;
-			for (const Eigen::Vector3d& vec : fc.generators)
-			{
-				K.row(r++) = vec;
-			}
 
 			Eigen::MatrixXd G = (eye3 - v_n*v_n.transpose()) * K;
 			G_.block(3*force_idx, 4*force_idx, 3, 4) = G;
 			force_idx++;
 		}
 	}
+
+	// Calculate Q once
+	Gamma_ = (1/pow(dt_,2) + damping_/dt_ + stiffness_)*G_;
+	Q_ = Gamma_ * Gamma_.transpose();
 
 	// C is recalculated at each timestep
 	calcC();
@@ -2056,7 +2052,7 @@ void FrictionConeTask::calcC()
 	std::cout << "FrictionConeTask: start calcC" << std::endl;
 	Eigen::VectorXd ones = Eigen::VectorXd::Ones(nrLambda_);
 	Eigen::VectorXd gamma = G_ * ((-2*lambda1_/dt_) * (1/dt_ + damping_/2) + lambda2_/pow(dt_,2)*ones); // TODO add beta, alpha_ref_
-	C_ = 2*gamma.transpose();
+	C_ = 2*Gamma_.transpose()*gamma;
 	std::cout << "FrictionConeTask: end calcC" << std::endl;
 }
 
