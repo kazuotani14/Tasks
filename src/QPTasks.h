@@ -1328,10 +1328,11 @@ private:
 	int robotIndex_;
 };
 
-// Should FrictionConeTask be for each robot, or for each contact?
 class TASKS_DLLAPI FrictionConeTask : public Task //Task is defined in Tasks/QPSolver.h
 {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
 	FrictionConeTask(double stiffness, double weight, double dt);
 	// FrictionConeTask(double stiffness, double weight, double dt, Eigen::Vector3d& com_init);
 
@@ -1366,12 +1367,47 @@ private:
 	double dt_;
 
 	Eigen::VectorXd lambda1_, lambda2_; // past lambdas for finite differencing
+	bool non_zero_lambda_received_;
 
 	double stiffness_, damping_;
-	Eigen::VectorXd k_, d_;
 	Eigen::MatrixXd G_;
     Eigen::MatrixXd Gamma_;
 	// Eigen::Vector3d com_;
+
+	// Eigen::VectorXd alpha_ref_;
+
+	Eigen::MatrixXd Q_;
+	Eigen::VectorXd C_;
+};
+
+class TASKS_DLLAPI ForceSmoothTask : public Task //Task is defined in Tasks/QPSolver.h
+{
+public:
+	ForceSmoothTask(double weight);
+	// FrictionConeTask(double stiffness, double weight, double dt, Eigen::Vector3d& com_init);
+
+	virtual std::pair<int, int> begin() const
+	{
+		return std::make_pair(begin_, begin_);
+	}
+
+	void pushLastLambda(Eigen::VectorXd& lambda1);
+
+	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+							  const SolverData& data);
+	virtual void update(const std::vector<rbd::MultiBody>& mbs,
+						const std::vector<rbd::MultiBodyConfig>& mbcs,
+						const SolverData& data);
+
+	virtual const Eigen::MatrixXd& Q() const;
+	virtual const Eigen::VectorXd& C() const;
+
+private:
+	int begin_;
+	int nrLambda_;
+	double dt_;
+
+	Eigen::VectorXd lambda1_; // past lambdas
 
 	Eigen::VectorXd alpha_ref_;
 

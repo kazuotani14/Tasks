@@ -1614,13 +1614,13 @@ void ContactTask::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */,
 
 	if(nrLambda == 0)
 	{
-		for(const BilateralContact& uc: data.allContacts())
+		for(const BilateralContact& contact: data.allContacts())
 		{
-			curLambda = uc.nrLambda();
-			if(uc.contactId == contactId_)
+			curLambda = contact.nrLambda();
+			if (contact.contactId == contactId_)
 			{
 				nrLambda = curLambda;
-				cones = uc.r1Cones;
+				cones = contact.r1Cones;
 				break;
 			}
 
@@ -1956,30 +1956,70 @@ const Eigen::VectorXd& VectorOrientationTask::normalAcc()
 	return vot_.normalAcc();
 }
 
+/*
+Eigen helper functions - TODO move these somewhere else
+*/
+
+Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+
+void print_eigen(std::string name, const Eigen::MatrixXd& mat)
+{
+	std::cout << name << "\n" << mat.format(CleanFmt) << "\n---\n";
+}
+
+void print_dims(std::string name, const Eigen::MatrixXd& mat)
+{
+	std::cout << "dim(" << name << "): " << mat.rows() << ", " << mat.cols() << std::endl;
+}
+
+void check_positive_definite(const Eigen::MatrixXd& mat)
+{
+	Eigen::LLT<Eigen::MatrixXd> lltOfMat(mat); // compute the Cholesky decomposition of A
+	if(lltOfMat.info() == Eigen::NumericalIssue)
+	{
+		std::cout << "Matrix is NOT positive semidefinite!" << std::endl;
+	}
+	else
+	{
+		std::cout << "Matrix is positive semidefinite!" << std::endl;
+	}
+}
+
+void print_eigvecs(const Eigen::MatrixXd& mat)
+{
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(mat);
+	if (eigensolver.info() != Eigen::Success){
+		std::cout << "Failed to compute eigenvectors." << std::endl;
+		return;
+	}
+	std::cout << "The eigenvalues of matrix are:\n" << eigensolver.eigenvalues().format(CleanFmt) << std::endl;
+	// cout << "Here's a matrix whose columns are eigenvectors of A \n"
+	// 	 << "corresponding to these eigenvalues:\n"
+	// 	 << eigensolver.eigenvectors() << endl;
+}
+
 
 /**
 	*														FrictionConeTask
 	*/
 
-// void print_vector3d_hor(const Eigen::Vector3d& v)
-// {
-// 	std::cout << v(0) << " " << v(1) << " " << v(2) << "\n";
-// }
 
 // TODO make more general, taking arbitrary alpha or options
 FrictionConeTask::FrictionConeTask(double stiffness, double weight, double dt):
 	Task(weight),
 	begin_(0),
+	nrLambda_(0),
 	dt_(dt),
 	lambda1_(), lambda2_(),
+	non_zero_lambda_received_(false),
 	stiffness_(stiffness),
 	damping_(2*std::sqrt(stiffness)),
-	k_(), d_(), G_(), Gamma_(),
-	alpha_ref_(),
+	G_(), Gamma_(),
+	// alpha_ref_(),
 	Q_(),
 	C_()
 {
-	std::cout << "FrictionConeTask init" << std::endl;
+	std::cout << "FrictionConeTask init\nstiffness: " << stiffness << "\ndt: " << dt << std::endl;
 }
 
 // Update Q_ and C_ matrices, based on friction cone
@@ -1987,20 +2027,18 @@ FrictionConeTask::FrictionConeTask(double stiffness, double weight, double dt):
 void FrictionConeTask::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */,
 									const SolverData& data)
 {
+	std::cout << "updateNrVars" << std::endl;
+
 	begin_ = data.lambdaBegin();
 
-	std::vector<Eigen::MatrixXd> Q_diag;
 	nrLambda_ = data.nrContacts() * 16; // each planar contact has 4 cones, 16 lambdas
+	int nrForceVecs = 3*nrLambda_/4;
 	Q_.setZero(nrLambda_, nrLambda_);
     C_.setZero(nrLambda_);
-	G_.setZero(3*nrLambda_/4, 3*nrLambda_/4);
+	G_.setZero(nrForceVecs, nrLambda_);
 
 	lambda1_.setZero(nrLambda_);
 	lambda2_.setZero(nrLambda_);
-
-	k_ = Eigen::VectorXd(nrLambda_) * stiffness_;
-	d_ = Eigen::VectorXd(nrLambda_) * damping_;
-
 
 	// Calculate G matrix once
 	Eigen::MatrixXd eye3 = Eigen::MatrixXd::Identity(3,3);
@@ -2029,8 +2067,35 @@ void FrictionConeTask::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */
 	}
 
 	// Calculate Q once
-	Gamma_ = (1/pow(dt_,2) + damping_/dt_ + stiffness_)*G_;
-	Q_ = Gamma_ * Gamma_.transpose();
+	// Gamma_ = (1/pow(dt_,2) + damping_/dt_ + stiffness_)*G_;
+	// Gamma_ = (1/pow(dt_,2) + damping_/dt_ + stiffness_)*G_*dt_;
+	// Gamma_ = G_ * (1/dt_ + stiffness_); // trying task on lambdadot
+	Gamma_ = stiffness_*G_; // trying separate lambdadot calculation
+
+	std::cout << "stiffness_: " << stiffness_ << std::endl;
+	print_eigen("G", G_);
+	print_eigen("Gamma", Gamma_);
+
+	Q_ = Gamma_.transpose() * Gamma_;
+
+	std::cout << "before reg" << std::endl;
+
+	// TODO add force regularization (over time) here, and in calcC
+	Eigen::MatrixXd eye_nl = Eigen::MatrixXd::Identity(nrLambda_, nrLambda_);
+
+	Eigen::MatrixXd A = eye_nl;
+	Eigen::MatrixXd b = lambda1_;
+	Eigen::MatrixXd G1 = A.transpose()*A;
+	Eigen::VectorXd g = -A.transpose()*b;
+
+	Q_ = Q_ + A;
+
+	// print_dims("Q_", Q_);
+	// print_dims("C_", C_);
+	// print_dims("g", g);
+	// print_eigen("Q_", Q_);
+	check_positive_definite(Q_);
+	// print_eigvecs(Q_);
 
 	// C is recalculated at each timestep
 	calcC();
@@ -2041,25 +2106,54 @@ void FrictionConeTask::update(const std::vector<rbd::MultiBody>& /*mbs*/ ,
 	const std::vector<rbd::MultiBodyConfig>& /*mbcs*/,
 	const SolverData& /*data*/)
 {
-	// TODO update lambda1, lambda2 -> update C_
-	// Can't access lambdas from here - need to be fed in from somewhere else
-
 	calcC();
 }
 
 void FrictionConeTask::calcC()
 {
-	std::cout << "FrictionConeTask: start calcC" << std::endl;
 	Eigen::VectorXd ones = Eigen::VectorXd::Ones(nrLambda_);
-	Eigen::VectorXd gamma = G_ * ((-2*lambda1_/dt_) * (1/dt_ + damping_/2) + lambda2_/pow(dt_,2)*ones); // TODO add beta, alpha_ref_
+	// Eigen::VectorXd gamma = G_ * ((-2*lambda1_/dt_) * (1/dt_ - damping_/2) + lambda2_/pow(dt_,2)); // TODO add beta, alpha_ref_
+	// Eigen::VectorXd gamma = G_ * (-2*lambda1_/dt_ + lambda2_/dt_ - damping_*lambda1_);
+	// Eigen::VectorXd gamma = -G_/dt_*lambda1_; // trying task on lambdadot
+	Eigen::VectorXd lambdadot = (lambda1_-lambda2_)/dt_;
+	Eigen::VectorXd gamma = G_*lambdadot; // trying separate lambdadot calculation
+
 	C_ = 2*Gamma_.transpose()*gamma;
-	std::cout << "FrictionConeTask: end calcC" << std::endl;
+
+	print_eigen("G", G_);
+	print_eigen("Gamma", Gamma_);
+
+	print_eigen("gamma", gamma);
+
+	print_eigen("lambdadot", lambdadot);
+	print_eigen("C_",C_);
+
+	//regularization tasks
+	Eigen::MatrixXd eye_nl = Eigen::MatrixXd::Identity(nrLambda_, nrLambda_);
+	Eigen::VectorXd g = -eye_nl.transpose()*lambda1_;
+	C_ += g;
+
+	if(!non_zero_lambda_received_)
+	{
+		C_.setZero();
+	}
+
+	print_eigen("C_",C_);
+	print_eigen("gamma", gamma);
+	print_eigen("l1", lambda1_);
+	// print_eigen("l2", lambda2_);
 }
 
 // Updates lambda vectors from past solutions, to use in calcC()
 void FrictionConeTask::pushLastLambda(Eigen::VectorXd& l)
 {
-	// std::cout << "received lambda vector" << std::endl;
+	if(!non_zero_lambda_received_ && (l.array() > 1.0).any())
+	{
+		std::cout << "nonzero lambda received for the first time" << std::endl;
+		lambda1_ = lambda2_ = l;
+		non_zero_lambda_received_ = true;
+	}
+
 	lambda2_ = lambda1_;
 	lambda1_ = l;
 }

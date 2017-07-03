@@ -553,7 +553,7 @@ void BilateralContact::construct(const std::vector<Eigen::Matrix3d>& r1Frames,
 		// construct r1 cone
 		r1Cones[i] = FrictionCone(r1Frames[i], nrGen, mu);
 		// create the b2 cone
-		// We take the oppostie frame because force are opposed
+		// We take the opposite frame because forces are opposed
 		r2Cones[i] = FrictionCone(-X_b2_p.rotation(), nrGen, mu, -1.);
 	}
 }

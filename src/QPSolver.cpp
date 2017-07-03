@@ -82,15 +82,18 @@ bool QPSolver::solve(const std::vector<rbd::MultiBody>& mbs,
 bool QPSolver::solveNoMbcUpdate(const std::vector<rbd::MultiBody>& mbs,
 	const std::vector<rbd::MultiBodyConfig>& mbcs)
 {
+    std::cout << "Start Tasks::QpSolver::solveNoMbcUpdate" << std::endl;
 	solverAndBuildTimer_.start();
 	preUpdate(mbs, mbcs);
 
+    std::cout << "Before last solve call" << std::endl;
 	solverTimer_.start();
 	bool success = solver_->solve();
 	solverTimer_.stop();
 
 	if(!success)
 	{
+		std::cout << "Last solve call returned false" << std::endl;
 		solver_->errorMsg(mbs,
 										 tasks_, eqConstr_, inEqConstr_,
 										 genInEqConstr_, boundConstr_,

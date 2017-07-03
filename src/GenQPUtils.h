@@ -57,6 +57,8 @@ inline void fillQC(const std::vector<Task*>& tasks, int nrVars,
 
 		Q.block(b.first, b.second, r, c) += tasks[i]->weight()*Qi;
 		C.segment(b.first, r) += tasks[i]->weight()*Ci;
+
+        // std::cout << "dim(Qi): " << Qi.rows() << " " << Qi.cols() << std::endl;
 	}
 
 	// try to transform Q_ to a positive matrix
