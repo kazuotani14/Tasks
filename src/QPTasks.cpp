@@ -2186,6 +2186,59 @@ void FrictionConeTask::gains(double stiffness, double damping)
 	damping_ = damping;
 }
 
+// TODO make more general, taking arbitrary alpha or options
+ForceSmoothTask::ForceSmoothTask(double weight):
+	Task(weight),
+	begin_(0),
+	nrLambda_(0),
+	dt_(dt),
+	lambda1_(),
+	Q_(),
+	C_()
+{
+	std::cout << "ForceSmoothTask init" << std::endl;
+}
+
+void ForceSmoothTask::updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+						  const SolverData& data)
+{
+	std::cout << "ForceSmoothTask updateNrVars" << std::endl;
+
+	begin_ = data.lambdaBegin();
+
+	nrLambda_ = data.nrContacts() * 16; // each planar contact has 4 cones, 16 lambdas
+
+	Q_.setZero(nrLambda_, nrLambda_);
+    C_.setZero(nrLambda_);
+	lambda1_.setZero(nrLambda_);
+
+	Q_ = Eigen::MatrixXd::Identity(nrLambda_, nrLambda_);
+}
+
+void ForceSmoothTask::update(const std::vector<rbd::MultiBody>& /*mbs*/,
+					const std::vector<rbd::MultiBodyConfig>& /*mbcs*/,
+					const SolverData& /*data*/)
+{
+	C_ = lambda1_;
+}
+
+// Updates lambda vectors from past solutions, to use in calcC()
+void ForceSmoothTask::pushLastLambda(Eigen::VectorXd& l)
+{
+	lambda1_ = l;
+}
+
+const Eigen::MatrixXd& ForceSmoothTask::Q() const
+{
+	return Q_;
+}
+
+const Eigen::VectorXd& ForceSmoothTask::C() const
+{
+	return C_;
+}
+
+
 } // namespace qp
 
 } // namespace tasks
