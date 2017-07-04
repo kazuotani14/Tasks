@@ -2199,7 +2199,7 @@ ForceSmoothTask::ForceSmoothTask(double weight):
 	std::cout << "ForceSmoothTask init" << std::endl;
 }
 
-void ForceSmoothTask::updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+void ForceSmoothTask::updateNrVars(const std::vector<rbd::MultiBody>& /*mbs*/,
 						  const SolverData& data)
 {
 	std::cout << "ForceSmoothTask updateNrVars" << std::endl;
