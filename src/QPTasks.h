@@ -1405,7 +1405,6 @@ public:
 private:
 	int begin_;
 	int nrLambda_;
-	double dt_;
 
 	Eigen::VectorXd lambda1_; // past lambdas
 

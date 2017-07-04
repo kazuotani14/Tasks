@@ -66,7 +66,7 @@ inline void fillQC(const std::vector<Task*>& tasks, int nrVars,
 	// the first necessary condition is to have
 	// Q_(i,i) > 0
 	// may be we can try to check the second
-	// condition in a near futur
+	// condition in a near future
 	// Q_(i,i) + Q_(j,j) > 2·Q_(i,j) for i≠j
 	for(int i = 0; i < nrVars; ++i)
 	{
@@ -96,8 +96,7 @@ inline int fillEq(const std::vector<Equality*>& eq, int nrVars,
 		const Eigen::MatrixXd& Ai = eq[i]->AEq();
 		const Eigen::VectorXd& bi = eq[i]->bEq();
 
-		A.block(nrALines, 0, nrConstr, nrVars) =
-			Ai.block(0, 0, nrConstr, nrVars);
+		A.block(nrALines, 0, nrConstr, nrVars) = Ai.block(0, 0, nrConstr, nrVars);
 		AL.segment(nrALines, nrConstr) = bi.head(nrConstr);
 		AU.segment(nrALines, nrConstr) = bi.head(nrConstr);
 
@@ -123,8 +122,7 @@ inline int fillInEq(const std::vector<Inequality*>& inEq, int nrVars,
 		const Eigen::MatrixXd& Ai = inEq[i]->AInEq();
 		const Eigen::VectorXd& bi = inEq[i]->bInEq();
 
-		A.block(nrALines, 0, nrConstr, nrVars) =
-			Ai.block(0, 0, nrConstr, nrVars);
+		A.block(nrALines, 0, nrConstr, nrVars) = Ai.block(0, 0, nrConstr, nrVars);
 		AL.segment(nrALines, nrConstr).fill(-std::numeric_limits<double>::infinity());
 		AU.segment(nrALines, nrConstr) = bi.head(nrConstr);
 

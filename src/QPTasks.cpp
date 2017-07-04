@@ -2072,13 +2072,13 @@ void FrictionConeTask::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */
 	// Gamma_ = G_ * (1/dt_ + stiffness_); // trying task on lambdadot
 	Gamma_ = stiffness_*G_; // trying separate lambdadot calculation
 
-	std::cout << "stiffness_: " << stiffness_ << std::endl;
-	print_eigen("G", G_);
-	print_eigen("Gamma", Gamma_);
+	// std::cout << "stiffness_: " << stiffness_ << std::endl;
+	// print_eigen("G", G_);
+	// print_eigen("Gamma", Gamma_);
 
 	Q_ = Gamma_.transpose() * Gamma_;
 
-	std::cout << "before reg" << std::endl;
+	// std::cout << "before reg" << std::endl;
 
 	// TODO add force regularization (over time) here, and in calcC
 	Eigen::MatrixXd eye_nl = Eigen::MatrixXd::Identity(nrLambda_, nrLambda_);
@@ -2120,13 +2120,13 @@ void FrictionConeTask::calcC()
 
 	C_ = 2*Gamma_.transpose()*gamma;
 
-	print_eigen("G", G_);
-	print_eigen("Gamma", Gamma_);
+	// print_eigen("G", G_);
+	// print_eigen("Gamma", Gamma_);
 
-	print_eigen("gamma", gamma);
+	// print_eigen("gamma", gamma);
 
-	print_eigen("lambdadot", lambdadot);
-	print_eigen("C_",C_);
+	// print_eigen("lambdadot", lambdadot);
+	// print_eigen("C_",C_);
 
 	//regularization tasks
 	Eigen::MatrixXd eye_nl = Eigen::MatrixXd::Identity(nrLambda_, nrLambda_);
@@ -2138,9 +2138,9 @@ void FrictionConeTask::calcC()
 		C_.setZero();
 	}
 
-	print_eigen("C_",C_);
-	print_eigen("gamma", gamma);
-	print_eigen("l1", lambda1_);
+	// print_eigen("C_",C_);
+	// print_eigen("gamma", gamma);
+	// print_eigen("l1", lambda1_);
 	// print_eigen("l2", lambda2_);
 }
 
@@ -2149,11 +2149,12 @@ void FrictionConeTask::pushLastLambda(Eigen::VectorXd& l)
 {
 	if(!non_zero_lambda_received_ && (l.array() > 1.0).any())
 	{
-		std::cout << "nonzero lambda received for the first time" << std::endl;
+		// std::cout << "nonzero lambda received for the first time" << std::endl;
 		lambda1_ = lambda2_ = l;
 		non_zero_lambda_received_ = true;
 	}
 
+	// print_eigen("lambda", l);
 	lambda2_ = lambda1_;
 	lambda1_ = l;
 }
@@ -2191,7 +2192,6 @@ ForceSmoothTask::ForceSmoothTask(double weight):
 	Task(weight),
 	begin_(0),
 	nrLambda_(0),
-	dt_(dt),
 	lambda1_(),
 	Q_(),
 	C_()
