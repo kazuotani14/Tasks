@@ -62,6 +62,9 @@ public:
 	virtual const Eigen::VectorXd& Lower() const;
 	virtual const Eigen::VectorXd& Upper() const;
 
+	// Dirty way to get lambda updates from the controller - TODO find better way to do this
+	void update_lambda(Eigen::VectorXd& l);
+
 private:
 	struct ContactData
 	{
@@ -72,8 +75,9 @@ private:
 private:
 	int lambdaBegin_;
 	Eigen::VectorXd XL_, XU_;
+    Eigen::VectorXd last_lambda_;
 
-	std::vector<ContactData> cont_; // only usefull for descBound
+	std::vector<ContactData> cont_; // only useful for descBound
 };
 
 
@@ -106,6 +110,9 @@ public:
 	virtual const Eigen::VectorXd& LowerGenInEq() const;
 	virtual const Eigen::VectorXd& UpperGenInEq() const;
 
+	// Dirty way to get lambda updates from the controller - TODO find better way to do this
+	void update_lambda(Eigen::VectorXd& l);
+
 protected:
 	struct ContactData
 	{
@@ -135,6 +142,9 @@ protected:
 
 	Eigen::MatrixXd A_;
 	Eigen::VectorXd AL_, AU_;
+
+	Eigen::VectorXd last_lambda_;
+	double dt_;
 };
 
 

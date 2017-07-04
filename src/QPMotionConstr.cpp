@@ -45,6 +45,7 @@ PositiveLambda::PositiveLambda():
 	lambdaBegin_(-1),
 	XL_(),
 	XU_(),
+	last_lambda_(),
 	cont_()
 { }
 
@@ -53,8 +54,10 @@ void PositiveLambda::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */,
 	const SolverData& data)
 {
 	lambdaBegin_ = data.lambdaBegin();
+	last_lambda_.setZero(data.totalLambda());
 
-	XL_.setConstant(data.totalLambda(), 0.);
+	// XL_.setConstant(data.totalLambda(), 0.);
+	XL_ = -last_lambda_;
 	XU_.setConstant(data.totalLambda(), std::numeric_limits<double>::infinity());
 
 	cont_.clear();
@@ -71,7 +74,15 @@ void PositiveLambda::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */,
 void PositiveLambda::update(const std::vector<rbd::MultiBody>& /* mbs */,
 	const std::vector<rbd::MultiBodyConfig>& /* mbc */,
 	const SolverData& /* data */)
-{ }
+{
+	XL_ = -last_lambda_;
+}
+
+// This needs to be called from MCController to supply new lambda
+void PositiveLambda::update_lambda(Eigen::VectorXd& l)
+{
+	last_lambda_ = l;
+}
 
 
 std::string PositiveLambda::nameBound() const
@@ -160,9 +171,13 @@ MotionConstrCommon::MotionConstrCommon(const std::vector<rbd::MultiBody>& mbs,
 	curTorque_(nrDof_),
 	A_(),
 	AL_(nrDof_),
-	AU_(nrDof_)
+	AU_(nrDof_),
+	last_lambda_(),
+	dt_(0.005)
+	// TODO remove dt hardcoding, move into constructor params
 {
 	assert(std::size_t(robotIndex_) < mbs.size() && robotIndex_ >= 0);
+	std::cout << "MotionConstrCommon init done" << std::endl;
 }
 
 
@@ -243,8 +258,9 @@ void MotionConstrCommon::computeMatrix(const std::vector<rbd::MultiBody>& mbs,
 	fd_.computeH(mb, mbc);
 	fd_.computeC(mb, mbc);
 
-	// tauMin -C <= H*alphaD - J^t G lambda <= tauMax - C
+	// tauMin -C <= H*alphaD - J^t G lambda <= tauMax - C TODO check if they even use this
 
+	// Note that H matrix here is equivalent to M matrix in paper
 	// fill inertia matrix part
 	A_.block(0, alphaDBegin_, nrDof_, nrDof_) = fd_.H();
 
@@ -261,6 +277,7 @@ void MotionConstrCommon::computeMatrix(const std::vector<rbd::MultiBody>& mbs,
 			// then we compute the jacobian against lambda J_l = J^T C
 			// to apply fullJacobian on it we must have robot dof on the column so
 			// J_l^T = (J^T C)^T = C^T J
+			// Note: cd.jac is of type rbd::jac
 			cd.jac.translateBodyJacobian(jac, mbc, cd.points[j], jacTrans_);
 			jacLambda_.block(0, 0, nrLambda, cd.jac.dof()).noalias() =
 				(cd.minusGenerators[j].transpose()*jacTrans_.block(3, 0, 3, cd.jac.dof()));
@@ -269,18 +286,26 @@ void MotionConstrCommon::computeMatrix(const std::vector<rbd::MultiBody>& mbs,
 				jacLambda_.block(0, 0, nrLambda, cd.jac.dof()),
 				fullJacLambda_);
 
-			A_.block(0, cd.lambdaBegin + lambdaOffset,
-				nrDof_, nrLambda).noalias() =
-					fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose();
+			A_.block(0, cd.lambdaBegin + lambdaOffset, nrDof_, nrLambda).noalias() =
+					fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose() * dt_;
+			// TODO check that above it J^T K (\Delta t)
 			lambdaOffset += nrLambda;
 		}
 	}
 
 	// BEq = -C
-	AL_ = -fd_.C();
-	AU_ = -fd_.C();
+	AL_ = -fd_.C() + fullJacLambda_.transpose()*last_lambda_; // TODO check this
+	AU_ = -fd_.C() + fullJacLambda_.transpose()*last_lambda_;
+
+	// std::cout << "dim(C): " << AL_.rows() << ", " << AU_.cols() << std::endl;
+	// std::cout << "dim(fullJacLambda): " << fullJacLambda_.rows() << ", " << fullJacLambda_.cols() << std::endl;
 }
 
+// This needs to be called from MCController to supply new lambda
+void MotionConstrCommon::update_lambda(Eigen::VectorXd& l)
+{
+	last_lambda_ = l;
+}
 
 int MotionConstrCommon::maxGenInEq() const
 {
@@ -319,7 +344,6 @@ std::string MotionConstrCommon::descGenInEq(const std::vector<rbd::MultiBody>& m
 	return std::string("Joint: ") + mbs[robotIndex_].joint(jIndex).name();
 }
 
-
 /**
 	*															MotionConstr
 	*/
@@ -355,6 +379,7 @@ const rbd::ForwardDynamics MotionConstr::fd() const
 {
 	return fd_;
 }
+
 
 /**
 	*															MotionSpringConstr
