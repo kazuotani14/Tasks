@@ -56,8 +56,8 @@ void PositiveLambda::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */,
 	lambdaBegin_ = data.lambdaBegin();
 	last_lambda_.setZero(data.totalLambda());
 
-	// XL_.setConstant(data.totalLambda(), 0.);
-	XL_ = -last_lambda_;
+	XL_.setConstant(data.totalLambda(), 0.);
+	// XL_ = -last_lambda_;
 	XU_.setConstant(data.totalLambda(), std::numeric_limits<double>::infinity());
 
 	cont_.clear();
@@ -75,7 +75,7 @@ void PositiveLambda::update(const std::vector<rbd::MultiBody>& /* mbs */,
 	const std::vector<rbd::MultiBodyConfig>& /* mbc */,
 	const SolverData& /* data */)
 {
-	XL_ = -last_lambda_;
+	// XL_ = -last_lambda_;
 }
 
 // This needs to be called from MCController to supply new lambda
@@ -180,39 +180,6 @@ MotionConstrCommon::MotionConstrCommon(const std::vector<rbd::MultiBody>& mbs,
 	std::cout << "MotionConstrCommon init done" << std::endl;
 }
 
-
-void MotionConstrCommon::computeTorque(const Eigen::VectorXd& alphaD, const Eigen::VectorXd& lambda)
-{
-	curTorque_ = fd_.H()*alphaD.segment(alphaDBegin_, nrDof_);
-	curTorque_ += fd_.C();
-	curTorque_ += A_.block(0, lambdaBegin_, nrDof_, A_.cols() - lambdaBegin_)*lambda;
-}
-
-
-const Eigen::VectorXd& MotionConstrCommon::torque() const
-{
-	return curTorque_;
-}
-
-
-void MotionConstrCommon::torque(const std::vector<rbd::MultiBody>& mbs,
-	std::vector<rbd::MultiBodyConfig>& mbcs) const
-{
-	const rbd::MultiBody& mb = mbs[robotIndex_];
-	rbd::MultiBodyConfig& mbc = mbcs[robotIndex_];
-
-	int pos = mb.joint(0).dof();
-	for(std::size_t i = 1; i < mbc.jointTorque.size(); ++i)
-	{
-		for(double& d: mbc.jointTorque[i])
-		{
-			d = curTorque_(pos);
-			++pos;
-		}
-	}
-}
-
-
 void MotionConstrCommon::updateNrVars(const std::vector<rbd::MultiBody>& mbs,
 	const SolverData& data)
 {
@@ -287,15 +254,17 @@ void MotionConstrCommon::computeMatrix(const std::vector<rbd::MultiBody>& mbs,
 				fullJacLambda_);
 
 			A_.block(0, cd.lambdaBegin + lambdaOffset, nrDof_, nrLambda).noalias() =
-					fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose() * dt_;
+					fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose();// * dt_;
 			// TODO check that above it J^T K (\Delta t)
 			lambdaOffset += nrLambda;
 		}
 	}
 
 	// BEq = -C
-	AL_ = -fd_.C() + fullJacLambda_.transpose()*last_lambda_; // TODO check this
-	AU_ = -fd_.C() + fullJacLambda_.transpose()*last_lambda_;
+	AL_ = -fd_.C();
+	AU_ = -fd_.C();
+	// AL_ = -fd_.C() + fullJacLambda_.transpose()*last_lambda_; // TODO check this
+	// AU_ = -fd_.C() + fullJacLambda_.transpose()*last_lambda_;
 
 	// std::cout << "dim(C): " << AL_.rows() << ", " << AU_.cols() << std::endl;
 	// std::cout << "dim(fullJacLambda): " << fullJacLambda_.rows() << ", " << fullJacLambda_.cols() << std::endl;
@@ -306,6 +275,39 @@ void MotionConstrCommon::update_lambda(Eigen::VectorXd& l)
 {
 	last_lambda_ = l;
 }
+
+
+void MotionConstrCommon::computeTorque(const Eigen::VectorXd& alphaD, const Eigen::VectorXd& lambda)
+{
+	curTorque_ = fd_.H()*alphaD.segment(alphaDBegin_, nrDof_);
+	curTorque_ += fd_.C();
+	curTorque_ += A_.block(0, lambdaBegin_, nrDof_, A_.cols() - lambdaBegin_)*lambda;
+}
+
+
+const Eigen::VectorXd& MotionConstrCommon::torque() const
+{
+	return curTorque_;
+}
+
+
+void MotionConstrCommon::torque(const std::vector<rbd::MultiBody>& mbs,
+	std::vector<rbd::MultiBodyConfig>& mbcs) const
+{
+	const rbd::MultiBody& mb = mbs[robotIndex_];
+	rbd::MultiBodyConfig& mbc = mbcs[robotIndex_];
+
+	int pos = mb.joint(0).dof();
+	for(std::size_t i = 1; i < mbc.jointTorque.size(); ++i)
+	{
+		for(double& d: mbc.jointTorque[i])
+		{
+			d = curTorque_(pos);
+			++pos;
+		}
+	}
+}
+
 
 int MotionConstrCommon::maxGenInEq() const
 {
