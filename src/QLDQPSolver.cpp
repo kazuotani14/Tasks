@@ -39,6 +39,8 @@ QLDQPSolver::QLDQPSolver():
 	Q_(),C_(),
 	nrAeqLines_(0), nrAineqLines_(0)
 {
+    std::cout << "QLDQPSolver init" << std::endl;
+
 }
 
 
@@ -80,6 +82,10 @@ void QLDQPSolver::updateMatrix(
 	C_.setZero();
 
 	const int nrVars = int(Q_.rows());
+
+	// std::cout << "size(eqConstr): " << eqConstr.size() << std::endl;
+	// std::cout << "size(inEqConstr): " << inEqConstr.size() << std::endl;
+	// std::cout << "size(genInEqConstr): " << genInEqConstr.size() << std::endl;
 
 	nrAeqLines_ = 0;
 	nrAeqLines_ = fillEq(eqConstr, nrVars, nrAeqLines_, Aeq_, beq_);

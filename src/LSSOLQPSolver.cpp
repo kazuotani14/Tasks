@@ -38,6 +38,7 @@ LSSOLQPSolver::LSSOLQPSolver():
 	Q_(),C_(),
 	nrALines_(0)
 {
+    std::cout << "LSSOLQPSolver init" << std::endl;
 	lssol_.warm(true);
 	lssol_.feasibilityTol(1e-6);
 }
@@ -76,6 +77,10 @@ void LSSOLQPSolver::updateMatrix(
 	C_.setZero();
 
 	const int nrVars = int(Q_.rows());
+
+	std::cout << "size(eqConstr): " << eqConstr.size() << std::endl;
+	std::cout << "size(inEqConstr): " << inEqConstr.size() << std::endl;
+	std::cout << "size(genInEqConstr): " << genInEqConstr.size() << std::endl;
 
 	nrALines_ = 0;
 	nrALines_ = fillEq(eqConstr, nrVars, nrALines_, A_, AL_, AU_);
