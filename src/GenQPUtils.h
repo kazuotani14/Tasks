@@ -144,6 +144,8 @@ inline int fillGenInEq(const std::vector<GenInequality*>& genInEq, int nrVars,
 	{
 		// ineq constraint can return a matrix with more line
 		// than the number of constraint
+        // std::cout << genInEq[i]->nameGenInEq() << std::endl;
+
 		int nrConstr = genInEq[i]->nrGenInEq();
 		const Eigen::MatrixXd& Ai = genInEq[i]->AGenInEq();
 		const Eigen::VectorXd& ALi = genInEq[i]->LowerGenInEq();
@@ -173,6 +175,8 @@ inline int fillEq(const std::vector<Equality*>& eq, int nrVars,
 {
 	for(std::size_t i = 0; i < eq.size(); ++i)
 	{
+		// std::cout << eq[i]->nameEq() << std::endl;
+
 		// ineq constraint can return a matrix with more line
 		// than the number of constraint
 		int nrConstr = eq[i]->nrEq();
@@ -199,6 +203,8 @@ inline int fillInEq(const std::vector<Inequality*>& inEq, int nrVars,
 {
 	for(std::size_t i = 0; i < inEq.size(); ++i)
 	{
+		// std::cout << inEq[i]->nameInEq() << std::endl;
+
 		// ineq constraint can return a matrix with more line
 		// than the number of constraint
 		int nrConstr = inEq[i]->nrInEq();
@@ -225,6 +231,8 @@ inline int fillGenInEq(const std::vector<GenInequality*>& genInEq, int nrVars,
 {
 	for(std::size_t i = 0; i < genInEq.size(); ++i)
 	{
+		// std::cout << genInEq[i]->nameGenInEq() << std::endl;
+
 		// ineq constraint can return a matrix with more line
 		// than the number of constraint
 		int nrConstr = genInEq[i]->nrGenInEq();
@@ -256,8 +264,11 @@ inline int fillGenInEq(const std::vector<GenInequality*>& genInEq, int nrVars,
 inline void fillBound(const std::vector<Bound*>& bounds,
 	Eigen::VectorXd& XL, Eigen::VectorXd& XU)
 {
+
 	for(std::size_t i = 0; i < bounds.size(); ++i)
 	{
+		// std::cout << bounds[i]->nameBound() << std::endl;
+
 		const Eigen::VectorXd& XLi = bounds[i]->Lower();
 		const Eigen::VectorXd& XUi = bounds[i]->Upper();
 		int bv = bounds[i]->beginVar();
