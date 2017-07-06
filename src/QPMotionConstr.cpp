@@ -45,7 +45,6 @@ PositiveLambda::PositiveLambda():
 	lambdaBegin_(-1),
 	XL_(),
 	XU_(),
-	last_lambda_(),
 	cont_()
 { }
 
@@ -54,10 +53,8 @@ void PositiveLambda::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */,
 	const SolverData& data)
 {
 	lambdaBegin_ = data.lambdaBegin();
-	last_lambda_.setZero(data.totalLambda());
 
 	XL_.setConstant(data.totalLambda(), 0.);
-	// XL_ = -last_lambda_;
 	XU_.setConstant(data.totalLambda(), std::numeric_limits<double>::infinity());
 
 	cont_.clear();
@@ -75,15 +72,7 @@ void PositiveLambda::update(const std::vector<rbd::MultiBody>& /* mbs */,
 	const std::vector<rbd::MultiBodyConfig>& /* mbc */,
 	const SolverData& /* data */)
 {
-	// XL_ = -last_lambda_;
 }
-
-// This needs to be called from MCController to supply new lambda
-void PositiveLambda::update_lambda(Eigen::VectorXd& l)
-{
-	last_lambda_ = l;
-}
-
 
 std::string PositiveLambda::nameBound() const
 {
@@ -171,10 +160,7 @@ MotionConstrCommon::MotionConstrCommon(const std::vector<rbd::MultiBody>& mbs,
 	curTorque_(nrDof_),
 	A_(),
 	AL_(nrDof_),
-	AU_(nrDof_),
-	last_lambda_(),
-	dt_(0.005)
-	// TODO remove dt hardcoding, move into constructor params
+	AU_(nrDof_)
 {
 	assert(std::size_t(robotIndex_) < mbs.size() && robotIndex_ >= 0);
 	std::cout << "MotionConstrCommon init done" << std::endl;
@@ -244,7 +230,6 @@ void MotionConstrCommon::computeMatrix(const std::vector<rbd::MultiBody>& mbs,
 			// then we compute the jacobian against lambda J_l = J^T C
 			// to apply fullJacobian on it we must have robot dof on the column so
 			// J_l^T = (J^T C)^T = C^T J
-			// Note: cd.jac is of type rbd::jac
 			cd.jac.translateBodyJacobian(jac, mbc, cd.points[j], jacTrans_);
 			jacLambda_.block(0, 0, nrLambda, cd.jac.dof()).noalias() =
 				(cd.minusGenerators[j].transpose()*jacTrans_.block(3, 0, 3, cd.jac.dof()));
@@ -254,28 +239,18 @@ void MotionConstrCommon::computeMatrix(const std::vector<rbd::MultiBody>& mbs,
 				fullJacLambda_);
 
 			A_.block(0, cd.lambdaBegin + lambdaOffset, nrDof_, nrLambda).noalias() =
-					fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose();// * dt_;
-			// TODO check that above it J^T K (\Delta t)
+					fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose();
 			lambdaOffset += nrLambda;
 		}
 	}
 
+	// Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	// std::cout << "fullJacLambda in l" << "\n" << fullJacLambda_.transpose().format(CleanFmt) << std::endl;
+
 	// BEq = -C
 	AL_ = -fd_.C();
 	AU_ = -fd_.C();
-	// AL_ = -fd_.C() + fullJacLambda_.transpose()*last_lambda_; // TODO check this
-	// AU_ = -fd_.C() + fullJacLambda_.transpose()*last_lambda_;
-
-	// std::cout << "dim(C): " << AL_.rows() << ", " << AU_.cols() << std::endl;
-	// std::cout << "dim(fullJacLambda): " << fullJacLambda_.rows() << ", " << fullJacLambda_.cols() << std::endl;
 }
-
-// This needs to be called from MCController to supply new lambda
-void MotionConstrCommon::update_lambda(Eigen::VectorXd& l)
-{
-	last_lambda_ = l;
-}
-
 
 void MotionConstrCommon::computeTorque(const Eigen::VectorXd& alphaD, const Eigen::VectorXd& lambda)
 {
@@ -317,18 +292,21 @@ int MotionConstrCommon::maxGenInEq() const
 
 const Eigen::MatrixXd& MotionConstrCommon::AGenInEq() const
 {
+	// std::cout << "MotionConstrCommon::AGenInEq()" << std::endl;
 	return A_;
 }
 
 
 const Eigen::VectorXd& MotionConstrCommon::LowerGenInEq() const
 {
+	// std::cout << "MotionConstrCommon::LowerGenInEq()" << std::endl;
 	return AL_;
 }
 
 
 const Eigen::VectorXd& MotionConstrCommon::UpperGenInEq() const
 {
+	// std::cout << "MotionConstrCommon::UpperGenInEq()" << std::endl;
 	return AU_;
 }
 
@@ -382,6 +360,233 @@ const rbd::ForwardDynamics MotionConstr::fd() const
 	return fd_;
 }
 
+
+/*************************
+*  	Lambdadot constraints
+*************************/
+
+/**
+	*															MotionConstrCommon
+	*/
+
+PositiveLambdaDot::PositiveLambdaDot(const Eigen::VectorXd& lambda_init):
+	PositiveLambda(),
+	last_lambda_(lambda_init)
+{ }
+
+
+void PositiveLambdaDot::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */,
+	const SolverData& data)
+{
+	lambdaBegin_ = data.lambdaBegin();
+	last_lambda_.setZero(data.totalLambda());
+
+	// XL_.setConstant(data.totalLambda(), 0.);
+	XL_ = -last_lambda_;
+	XU_.setConstant(data.totalLambda(), std::numeric_limits<double>::infinity());
+
+	cont_.clear();
+	const std::vector<BilateralContact>& allC = data.allContacts();
+	for(std::size_t i = 0; i < allC.size(); ++i)
+	{
+		cont_.push_back({allC[i].contactId,
+				data.lambdaBegin(int(i)),
+				allC[i].nrLambda()});
+	}
+}
+
+
+void PositiveLambdaDot::update(const std::vector<rbd::MultiBody>& /* mbs */,
+	const std::vector<rbd::MultiBodyConfig>& /* mbc */,
+	const SolverData& /* data */)
+{
+	XL_ = -last_lambda_;
+}
+
+// This needs to be called from MCController to supply new lambda
+void PositiveLambdaDot::update_lambda(const Eigen::VectorXd& l)
+{
+	last_lambda_ = l;
+
+	// Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	// std::cout << "last_lambda in PositiveLambdaDot" << "\n" << last_lambda_.transpose().format(CleanFmt) << std::endl;
+}
+
+std::string PositiveLambdaDot::nameBound() const
+{
+	return "PositiveLambdaDot";;
+}
+
+
+MotionConstrCommonDot::MotionConstrCommonDot(const std::vector<rbd::MultiBody>& mbs,
+	int robotIndex, const Eigen::VectorXd& lambda_init, double dt):
+	MotionConstrCommon(mbs, robotIndex),
+	last_lambda_(lambda_init),
+	dt_(dt)
+{
+	assert(std::size_t(robotIndex_) < mbs.size() && robotIndex_ >= 0);
+	std::cout << "MotionConstrCommonDot init done" << std::endl;
+}
+
+void MotionConstrCommonDot::updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+	const SolverData& data)
+{
+	const rbd::MultiBody& mb = mbs[robotIndex_];
+
+	alphaDBegin_ = data.alphaDBegin(robotIndex_);
+	lambdaBegin_ = data.lambdaBegin();
+
+	cont_.clear();
+	const auto& cCont = data.allContacts();
+	for(std::size_t i = 0; i < cCont.size(); ++i)
+	{
+		const BilateralContact& c = cCont[i];
+		if(robotIndex_ == c.contactId.r1Index)
+		{
+			cont_.emplace_back(mb, c.contactId.r1BodyName, data.lambdaBegin(int(i)),
+				c.r1Points, c.r1Cones);
+		}
+		// we don't use else to manage self contact on the robot
+		if(robotIndex_ == c.contactId.r2Index)
+		{
+			cont_.emplace_back(mb, c.contactId.r2BodyName, data.lambdaBegin(int(i)),
+				c.r2Points, c.r2Cones);
+		}
+	}
+
+	/// @todo don't use nrDof and totalLamdba but max dof of a jacobian
+	/// and max lambda of a contact.
+	A_.setZero(nrDof_, data.nrVars());
+	jacLambda_.resize(data.totalLambda(), nrDof_);
+	fullJacLambda_.resize(data.totalLambda(), nrDof_);
+	fullJacLambda_.setZero();
+}
+
+void MotionConstrCommonDot::computeMatrix(const std::vector<rbd::MultiBody>& mbs,
+	const std::vector<rbd::MultiBodyConfig>& mbcs)
+{
+	using namespace Eigen;
+
+	const rbd::MultiBody& mb = mbs[robotIndex_];
+	const rbd::MultiBodyConfig& mbc = mbcs[robotIndex_];
+
+	fd_.computeH(mb, mbc);
+	fd_.computeC(mb, mbc);
+
+	// tauMin -C <= H*alphaD - J^t G lambda <= tauMax - C TODO check if they even use this
+
+	// Note that H matrix here is equivalent to M matrix in paper
+	// fill inertia matrix part
+	A_.block(0, alphaDBegin_, nrDof_, nrDof_) = fd_.H();
+
+	for(std::size_t i = 0; i < cont_.size(); ++i)
+	{
+		const MatrixXd& jac = cont_[i].jac.bodyJacobian(mb, mbc);
+
+		ContactData& cd = cont_[i];
+		int lambdaOffset = 0;
+		for(std::size_t j = 0; j < cd.points.size(); ++j)
+		{
+			int nrLambda = int(cd.minusGenerators[j].cols());
+			// we translate the jacobian to the contact point
+			// then we compute the jacobian against lambda J_l = J^T C
+			// to apply fullJacobian on it we must have robot dof on the column so
+			// J_l^T = (J^T C)^T = C^T J
+			// Note: cd.jac is of type rbd::jac
+			cd.jac.translateBodyJacobian(jac, mbc, cd.points[j], jacTrans_);
+			jacLambda_.block(0, 0, nrLambda, cd.jac.dof()).noalias() =
+				(cd.minusGenerators[j].transpose()*jacTrans_.block(3, 0, 3, cd.jac.dof()));
+
+			cd.jac.fullJacobian(mb,
+				jacLambda_.block(0, 0, nrLambda, cd.jac.dof()),
+				fullJacLambda_);
+
+
+			// A_.block(0, cd.lambdaBegin + lambdaOffset, nrDof_, nrLambda).noalias() =
+			// 		fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose();
+			A_.block(0, cd.lambdaBegin + lambdaOffset, nrDof_, nrLambda).noalias() =
+					fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose();
+			// TODO check that above it J^T K (\Delta t)
+
+			lambdaOffset += nrLambda;
+			//lambdaOffset: 4, 8, 12, 16
+			// nrLambda: 4, nrDof_: 48
+		}
+	}
+
+	A_.block(0, lambdaBegin_, nrDof_, 32) *= dt_;
+
+	Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	std::cout << "last_lambda in MotionConstrDot" << "\n" << last_lambda_.transpose().format(CleanFmt) << std::endl;
+
+	// BEq = -C
+	// AL_ = -fd_.C();
+	// AU_ = -fd_.C();
+
+	// fullJacLambda_ is -K^T J
+	AL_ = -fd_.C() + (-fullJacLambda_.transpose()*last_lambda_); // TODO check this
+	AU_ = -fd_.C() + (-fullJacLambda_.transpose()*last_lambda_);
+
+	// std::cout << "-fd_.C()" << "\n" << fd_.C().transpose().format(CleanFmt) << std::endl;
+	// std::cout << "fullJacLambda" << "\n" << fullJacLambda_.transpose().format(CleanFmt) << std::endl;
+
+	// std::cout << "AL" << "\n" << AL_.transpose().format(CleanFmt) << std::endl;
+	// std::cout << "AU" << "\n" << AU_.transpose().format(CleanFmt) << std::endl;
+
+	// std::cout << "dim(C): " << AL_.rows() << ", " << AU_.cols() << std::endl;
+	// std::cout << "dim(fullJacLambda): " << fullJacLambda_.rows() << ", " << fullJacLambda_.cols() << std::endl;
+	// std::cout << "dimAL: " << AL_.rows() << ", " << AL_.cols() << std::endl;
+}
+
+/**
+*	MotionConstrDot
+*/
+
+
+MotionConstrDot::MotionConstrDot(const std::vector<rbd::MultiBody>& mbs,
+	int robotIndex, const TorqueBound& tb, const Eigen::VectorXd& lambda_init, double dt):
+	MotionConstrCommonDot(mbs, robotIndex, lambda_init, dt),
+	torqueL_(mbs[robotIndex].nrDof()),
+	torqueU_(mbs[robotIndex].nrDof())
+{
+	rbd::paramToVector(tb.lTorqueBound, torqueL_);
+	rbd::paramToVector(tb.uTorqueBound, torqueU_);
+	std::cout << "MotionConstrDot init" << std::endl;
+}
+
+
+void MotionConstrDot::update(const std::vector<rbd::MultiBody>& mbs,
+	const std::vector<rbd::MultiBodyConfig>& mbcs,
+	const SolverData& /* data */)
+{
+	std::cout << "MotionConstrDot update" << std::endl;
+
+	computeMatrix(mbs, mbcs);
+
+	AL_.head(torqueL_.rows()) += torqueL_;
+	AU_.head(torqueU_.rows()) += torqueU_;
+}
+
+Eigen::MatrixXd MotionConstrDot::contactMatrix() const
+{
+	return A_.block(0, nrDof_, A_.rows(), A_.cols() - nrDof_);
+}
+
+const rbd::ForwardDynamics MotionConstrDot::fd() const
+{
+	return fd_;
+}
+
+// This needs to be called from MCController to supply new lambda
+void MotionConstrDot::update_lambda(const Eigen::VectorXd& l)
+{
+	last_lambda_ = l;
+}
+
+std::string MotionConstrDot::nameGenInEq() const
+{
+	return "MotionConstrDot";
+}
 
 /**
 	*															MotionSpringConstr

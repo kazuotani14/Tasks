@@ -62,20 +62,17 @@ public:
 	virtual const Eigen::VectorXd& Lower() const;
 	virtual const Eigen::VectorXd& Upper() const;
 
-	// Dirty way to get lambda updates from the controller - TODO find better way to do this
-	void update_lambda(Eigen::VectorXd& l);
+	virtual void update_lambda(const Eigen::VectorXd& /*l*/) { std::cout << "Wrong one, dude" << std::endl; }
 
-private:
+protected:
 	struct ContactData
 	{
 		ContactId cId;
 		int lambdaBegin, nrLambda; // lambda index in x
 	};
 
-private:
 	int lambdaBegin_;
 	Eigen::VectorXd XL_, XU_;
-    Eigen::VectorXd last_lambda_;
 
 	std::vector<ContactData> cont_; // only useful for descBound
 };
@@ -96,7 +93,7 @@ public:
 	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
 		const SolverData& data);
 
-	void computeMatrix(const std::vector<rbd::MultiBody>& mb,
+	virtual void computeMatrix(const std::vector<rbd::MultiBody>& mb,
 		const std::vector<rbd::MultiBodyConfig>& mbcs);
 
 	// Description
@@ -110,8 +107,7 @@ public:
 	virtual const Eigen::VectorXd& LowerGenInEq() const;
 	virtual const Eigen::VectorXd& UpperGenInEq() const;
 
-	// Dirty way to get lambda updates from the controller - TODO find better way to do this
-	void update_lambda(Eigen::VectorXd& l);
+	virtual void update_lambda(const Eigen::VectorXd& /*l*/) { std::cout << "Wrong one, dude" << std::endl;}
 
 protected:
 	struct ContactData
@@ -121,7 +117,6 @@ protected:
 			const std::string& bodyName, int lambdaBegin,
 			std::vector<Eigen::Vector3d> points,
 			const std::vector<FrictionCone>& cones);
-
 
 		int bodyIndex;
 		int lambdaBegin;
@@ -142,9 +137,6 @@ protected:
 
 	Eigen::MatrixXd A_;
 	Eigen::VectorXd AL_, AU_;
-
-	Eigen::VectorXd last_lambda_;
-	double dt_;
 };
 
 
@@ -167,6 +159,78 @@ public:
 	Eigen::MatrixXd contactMatrix() const;
 	//Access fd...
 	const rbd::ForwardDynamics fd() const;
+
+protected:
+	Eigen::VectorXd torqueL_, torqueU_;
+};
+
+
+/*************************
+*  	Lambdadot constraints
+*************************/
+
+class TASKS_DLLAPI PositiveLambdaDot : public PositiveLambda
+{
+public:
+	PositiveLambdaDot(const Eigen::VectorXd& lambda_init);
+
+	// Constraint
+	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+		const SolverData& data) override;
+	virtual void update(const std::vector<rbd::MultiBody>& mbs,
+		const std::vector<rbd::MultiBodyConfig>& mbc,
+		const SolverData& data) override;
+
+	virtual std::string nameBound() const override;
+
+	void update_lambda(const Eigen::VectorXd& l) override;
+
+private:
+	Eigen::VectorXd last_lambda_;
+};
+
+class TASKS_DLLAPI MotionConstrCommonDot : public MotionConstrCommon
+{
+public:
+	MotionConstrCommonDot(const std::vector<rbd::MultiBody>& mbs, int robotIndex, const Eigen::VectorXd& lambda_init, double dt);
+
+	// Constraint
+	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+		const SolverData& data) override;
+
+	virtual void computeMatrix(const std::vector<rbd::MultiBody>& mb,
+		const std::vector<rbd::MultiBodyConfig>& mbcs) override;
+
+protected:
+	Eigen::VectorXd last_lambda_;
+	double dt_;
+};
+
+
+class TASKS_DLLAPI MotionConstrDot : public MotionConstrCommonDot
+{
+public:
+	MotionConstrDot(const std::vector<rbd::MultiBody>& mbs, int robotIndex,
+		const TorqueBound& tb, const Eigen::VectorXd& lambda_init, double dt);
+
+	// Constraint
+	void update(const std::vector<rbd::MultiBody>& mbs,
+		const std::vector<rbd::MultiBodyConfig>& mbcs,
+		const SolverData& data);
+	//Matrix
+	const Eigen::MatrixXd matrix() const
+	{
+	  return A_;
+	}
+	//Contact torque
+	Eigen::MatrixXd contactMatrix() const;
+	//Access fd...
+	const rbd::ForwardDynamics fd() const;
+
+	// Dirty way to get lambda updates from the controller - TODO find better way to do this
+	void update_lambda(const Eigen::VectorXd& l) override;
+
+	virtual std::string nameGenInEq() const override;
 
 protected:
 	Eigen::VectorXd torqueL_, torqueU_;
