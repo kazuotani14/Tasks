@@ -130,13 +130,15 @@ protected:
 protected:
 	int robotIndex_, alphaDBegin_, nrDof_, lambdaBegin_;
 	rbd::ForwardDynamics fd_;
-	Eigen::MatrixXd fullJacLambda_, jacTrans_, jacLambda_;
 	std::vector<ContactData> cont_;
 
 	Eigen::VectorXd curTorque_;
 
+public:
+	Eigen::MatrixXd fullJacLambda_, jacTrans_, jacLambda_;
 	Eigen::MatrixXd A_;
 	Eigen::VectorXd AL_, AU_;
+	Eigen::MatrixXd M_, N_;
 };
 
 
@@ -172,7 +174,7 @@ protected:
 class TASKS_DLLAPI PositiveLambdaDot : public PositiveLambda
 {
 public:
-	PositiveLambdaDot(const Eigen::VectorXd& lambda_init);
+	PositiveLambdaDot(const Eigen::VectorXd& lambda_init, double dt);
 
 	// Constraint
 	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
@@ -187,6 +189,7 @@ public:
 
 private:
 	Eigen::VectorXd last_lambda_;
+	double dt_;
 };
 
 class TASKS_DLLAPI MotionConstrCommonDot : public MotionConstrCommon

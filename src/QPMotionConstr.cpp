@@ -55,6 +55,8 @@ void PositiveLambda::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs */,
 	lambdaBegin_ = data.lambdaBegin();
 
 	XL_.setConstant(data.totalLambda(), 0.);
+	// XL_.setConstant(data.totalLambda(), -std::numeric_limits<double>::infinity());
+
 	XU_.setConstant(data.totalLambda(), std::numeric_limits<double>::infinity());
 
 	cont_.clear();
@@ -109,12 +111,16 @@ int PositiveLambda::beginVar() const
 
 const Eigen::VectorXd& PositiveLambda::Lower() const
 {
+	// Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	// std::cout << "XL_" << "\n" << XL_.transpose().format(CleanFmt) << std::endl;
 	return XL_;
 }
 
 
 const Eigen::VectorXd& PositiveLambda::Upper() const
 {
+	// Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	// std::cout << "XU_" << "\n" << XU_.transpose().format(CleanFmt) << std::endl;
 	return XU_;
 }
 
@@ -211,6 +217,9 @@ void MotionConstrCommon::computeMatrix(const std::vector<rbd::MultiBody>& mbs,
 	fd_.computeH(mb, mbc);
 	fd_.computeC(mb, mbc);
 
+	M_ = fd_.H();
+	N_ = fd_.C();
+
 	// tauMin -C <= H*alphaD - J^t G lambda <= tauMax - C TODO check if they even use this
 
 	// Note that H matrix here is equivalent to M matrix in paper
@@ -293,6 +302,9 @@ int MotionConstrCommon::maxGenInEq() const
 const Eigen::MatrixXd& MotionConstrCommon::AGenInEq() const
 {
 	// std::cout << "MotionConstrCommon::AGenInEq()" << std::endl;
+	// std::cout << "dim(A): " << A_.rows() << ", " << A_.cols() << std::endl;
+	// Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	// std::cout << "A_" << "\n" << A_.transpose().format(CleanFmt) << std::endl;
 	return A_;
 }
 
@@ -300,6 +312,8 @@ const Eigen::MatrixXd& MotionConstrCommon::AGenInEq() const
 const Eigen::VectorXd& MotionConstrCommon::LowerGenInEq() const
 {
 	// std::cout << "MotionConstrCommon::LowerGenInEq()" << std::endl;
+	// Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	// std::cout << "AL_" << "\n" << AL_.transpose().format(CleanFmt) << std::endl;
 	return AL_;
 }
 
@@ -307,6 +321,8 @@ const Eigen::VectorXd& MotionConstrCommon::LowerGenInEq() const
 const Eigen::VectorXd& MotionConstrCommon::UpperGenInEq() const
 {
 	// std::cout << "MotionConstrCommon::UpperGenInEq()" << std::endl;
+	// Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	// std::cout << "AU_" << "\n" << AU_.transpose().format(CleanFmt) << std::endl;
 	return AU_;
 }
 
@@ -369,9 +385,10 @@ const rbd::ForwardDynamics MotionConstr::fd() const
 	*															MotionConstrCommon
 	*/
 
-PositiveLambdaDot::PositiveLambdaDot(const Eigen::VectorXd& lambda_init):
+PositiveLambdaDot::PositiveLambdaDot(const Eigen::VectorXd& lambda_init, double dt):
 	PositiveLambda(),
-	last_lambda_(lambda_init)
+	last_lambda_(lambda_init),
+	dt_(dt)
 { }
 
 
@@ -382,7 +399,9 @@ void PositiveLambdaDot::updateNrVars(const std::vector<rbd::MultiBody>& /* mbs *
 	last_lambda_.setZero(data.totalLambda());
 
 	// XL_.setConstant(data.totalLambda(), 0.);
-	XL_ = -last_lambda_;
+	XL_ = -last_lambda_/dt_;
+	// XL_.setConstant(data.totalLambda(), -std::numeric_limits<double>::infinity());
+
 	XU_.setConstant(data.totalLambda(), std::numeric_limits<double>::infinity());
 
 	cont_.clear();
@@ -400,7 +419,7 @@ void PositiveLambdaDot::update(const std::vector<rbd::MultiBody>& /* mbs */,
 	const std::vector<rbd::MultiBodyConfig>& /* mbc */,
 	const SolverData& /* data */)
 {
-	XL_ = -last_lambda_;
+	XL_ = -last_lambda_/dt_;
 }
 
 // This needs to be called from MCController to supply new lambda
@@ -473,11 +492,16 @@ void MotionConstrCommonDot::computeMatrix(const std::vector<rbd::MultiBody>& mbs
 	fd_.computeH(mb, mbc);
 	fd_.computeC(mb, mbc);
 
+	M_ = fd_.H();
+	N_ = fd_.C();
+
 	// tauMin -C <= H*alphaD - J^t G lambda <= tauMax - C TODO check if they even use this
 
 	// Note that H matrix here is equivalent to M matrix in paper
 	// fill inertia matrix part
 	A_.block(0, alphaDBegin_, nrDof_, nrDof_) = fd_.H();
+
+	std::cout << "nRdof: " << nrDof_ << std::endl;
 
 	for(std::size_t i = 0; i < cont_.size(); ++i)
 	{
@@ -505,7 +529,7 @@ void MotionConstrCommonDot::computeMatrix(const std::vector<rbd::MultiBody>& mbs
 			// A_.block(0, cd.lambdaBegin + lambdaOffset, nrDof_, nrLambda).noalias() =
 			// 		fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose();
 			A_.block(0, cd.lambdaBegin + lambdaOffset, nrDof_, nrLambda).noalias() =
-					fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose();
+					fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose() * dt_;
 			// TODO check that above it J^T K (\Delta t)
 
 			lambdaOffset += nrLambda;
@@ -514,10 +538,12 @@ void MotionConstrCommonDot::computeMatrix(const std::vector<rbd::MultiBody>& mbs
 		}
 	}
 
-	A_.block(0, lambdaBegin_, nrDof_, 32) *= dt_;
+	// A_.block(0, lambdaBegin_, nrDof_, 32) *= dt_;
 
 	Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 	std::cout << "last_lambda in MotionConstrDot" << "\n" << last_lambda_.transpose().format(CleanFmt) << std::endl;
+	std::cout << "dim(fullJacLambda): " << fullJacLambda_.rows() << ", " << fullJacLambda_.cols() << std::endl;
+	std::cout << "fullJacLambda_" << "\n" << fullJacLambda_.format(CleanFmt) << std::endl;
 
 	// BEq = -C
 	// AL_ = -fd_.C();
@@ -534,7 +560,6 @@ void MotionConstrCommonDot::computeMatrix(const std::vector<rbd::MultiBody>& mbs
 	// std::cout << "AU" << "\n" << AU_.transpose().format(CleanFmt) << std::endl;
 
 	// std::cout << "dim(C): " << AL_.rows() << ", " << AU_.cols() << std::endl;
-	// std::cout << "dim(fullJacLambda): " << fullJacLambda_.rows() << ", " << fullJacLambda_.cols() << std::endl;
 	// std::cout << "dimAL: " << AL_.rows() << ", " << AL_.cols() << std::endl;
 }
 
