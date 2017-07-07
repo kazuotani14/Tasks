@@ -46,6 +46,8 @@ static const double DIAG_CONSTANT = 1e-4;
 inline void fillQC(const std::vector<Task*>& tasks, int nrVars,
 	Eigen::MatrixXd& Q, Eigen::VectorXd& C)
 {
+	// std::cout << "tasks.size: " << tasks.size() << std::endl;
+
 	for(std::size_t i = 0; i < tasks.size(); ++i)
 	{
 		const Eigen::MatrixXd& Qi = tasks[i]->Q();
@@ -68,13 +70,14 @@ inline void fillQC(const std::vector<Task*>& tasks, int nrVars,
 	// may be we can try to check the second
 	// condition in a near future
 	// Q_(i,i) + Q_(j,j) > 2·Q_(i,j) for i≠j
-	for(int i = 0; i < nrVars; ++i)
-	{
-		if(std::abs(Q(i, i)) < DIAG_CONSTANT)
-		{
-			Q(i, i) += DIAG_CONSTANT;
-		}
-	}
+	// for(int i = 0; i < nrVars; ++i)
+	// {
+	// 	if(std::abs(Q(i, i)) < DIAG_CONSTANT)
+	// 	{
+	// 		std::cout << "regularization done on row " << i << std::endl;
+	// 		Q(i, i) += DIAG_CONSTANT;
+	// 	}
+	// }
 }
 
 
@@ -175,7 +178,7 @@ inline int fillEq(const std::vector<Equality*>& eq, int nrVars,
 {
 	for(std::size_t i = 0; i < eq.size(); ++i)
 	{
-		// std::cout << eq[i]->nameEq() << std::endl;
+		std::cout << eq[i]->nameEq() << std::endl;
 
 		// ineq constraint can return a matrix with more line
 		// than the number of constraint

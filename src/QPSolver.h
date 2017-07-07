@@ -143,6 +143,8 @@ public:
 	boost::timer::cpu_times solveTime() const;
 	boost::timer::cpu_times solveAndBuildTime() const;
 
+	std::unique_ptr<GenQPSolver> solver_;
+
 protected:
 	void preUpdate(const std::vector<rbd::MultiBody>& mbs,
 								const std::vector<rbd::MultiBodyConfig>& mbcs);
@@ -163,7 +165,6 @@ private:
 
 	int maxEqLines_, maxInEqLines_, maxGenInEqLines_;
 
-	std::unique_ptr<GenQPSolver> solver_;
 
 	boost::timer::cpu_timer solverTimer_, solverAndBuildTimer_;
 };
@@ -480,4 +481,3 @@ struct constr_traits<GenInequality>
 } // namespace qp
 
 } // namespace tasks
-

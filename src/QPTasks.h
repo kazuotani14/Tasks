@@ -1414,6 +1414,41 @@ private:
 	Eigen::VectorXd C_;
 };
 
+class TASKS_DLLAPI ForceSmoothDotTask : public Task //Task is defined in Tasks/QPSolver.h
+{
+public:
+	ForceSmoothDotTask(double weight);
+	// FrictionConeTask(double stiffness, double weight, double dt, Eigen::Vector3d& com_init);
+
+	virtual std::pair<int, int> begin() const
+	{
+		return std::make_pair(begin_, begin_);
+	}
+
+	void update_lambda(Eigen::VectorXd& lambda1);
+
+	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+							  const SolverData& data);
+	virtual void update(const std::vector<rbd::MultiBody>& mbs,
+						const std::vector<rbd::MultiBodyConfig>& mbcs,
+						const SolverData& data);
+
+	virtual const Eigen::MatrixXd& Q() const;
+	virtual const Eigen::VectorXd& C() const;
+
+private:
+	int begin_;
+	int nrLambda_;
+
+	double dt_ = 0.005;
+	Eigen::VectorXd lambda1_; // past lambdas
+
+	Eigen::VectorXd alpha_ref_;
+
+	Eigen::MatrixXd Q_;
+	Eigen::VectorXd C_;
+};
+
 } // namespace qp
 
 } // namespace tasks

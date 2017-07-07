@@ -37,7 +37,8 @@ QLDQPSolver::QLDQPSolver():
 	beq_(), bineq_(),
 	XL_(),XU_(),
 	Q_(),C_(),
-	nrAeqLines_(0), nrAineqLines_(0)
+	nrAeqLines_(0), nrAineqLines_(0),
+	last_Q_(), last_C_(), last_mats_available(false)
 {
     std::cout << "QLDQPSolver init" << std::endl;
 
@@ -93,8 +94,24 @@ void QLDQPSolver::updateMatrix(
 	nrAineqLines_ = fillInEq(inEqConstr, nrVars, nrAineqLines_, Aineq_, bineq_);
 	nrAineqLines_ = fillGenInEq(genInEqConstr, nrVars, nrAineqLines_, Aineq_, bineq_);
 
+	// std::cout << "nrAeqLines_: " << nrAeqLines_ << " , nrAineqLines_: " << nrAineqLines_ << std::endl;
+
 	fillBound(boundConstr, XL_, XU_);
 	fillQC(tasks, nrVars, Q_, C_);
+
+	if(!last_mats_available)
+	{
+		last_mats_available = true;
+	}
+	else
+	{
+		Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+		// std::cout << "Q-Qlast" << "\n" << Q_ - last_Q_ << std::endl;
+		// std::cout << "C-Clast" << "\n" << C_ - last_C_ << std::endl;
+	}
+	last_Q_ = Q_;
+	last_C_ = C_;
+
 }
 
 
@@ -104,6 +121,7 @@ bool QLDQPSolver::solve()
 		Aeq_.block(0, 0, nrAeqLines_, int(Aeq_.cols())), beq_.segment(0, nrAeqLines_),
 		Aineq_.block(0, 0, nrAineqLines_, int(Aineq_.cols())), bineq_.segment(0, nrAineqLines_),
 		XL_, XU_, 1e-6);
+
 	return success;
 }
 

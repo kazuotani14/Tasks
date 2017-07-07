@@ -91,6 +91,9 @@ bool QPSolver::solveNoMbcUpdate(const std::vector<rbd::MultiBody>& mbs,
 	bool success = solver_->solve();
 	solverTimer_.stop();
 
+    // Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+    // std::cout << "qpsolver result" << "\n" << solver_->result().transpose().format(CleanFmt) << std::endl;
+
 	if(!success)
 	{
 		std::cout << "Last solve call in Tasks::QPSolver::solveNoMbcUpdate returned false" << std::endl;

@@ -56,6 +56,12 @@ public:
 		const std::vector<Bound*>& boundConstr,
 		std::ostream& out) const override;
 
+    Eigen::MatrixXd Q_;
+    Eigen::VectorXd C_;
+	Eigen::MatrixXd last_Q_;
+	Eigen::VectorXd last_C_;
+	bool last_mats_available;
+
 private:
 	Eigen::QLD qld_;
 
@@ -65,8 +71,6 @@ private:
 	Eigen::VectorXd XL_;
 	Eigen::VectorXd XU_;
 
-	Eigen::MatrixXd Q_;
-	Eigen::VectorXd C_;
 
 	int nrAeqLines_;
 	int nrAineqLines_;

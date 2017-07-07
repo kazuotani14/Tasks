@@ -111,7 +111,7 @@ int PositiveLambda::beginVar() const
 
 const Eigen::VectorXd& PositiveLambda::Lower() const
 {
-	// Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 	// std::cout << "XL_" << "\n" << XL_.transpose().format(CleanFmt) << std::endl;
 	return XL_;
 }
@@ -119,7 +119,7 @@ const Eigen::VectorXd& PositiveLambda::Lower() const
 
 const Eigen::VectorXd& PositiveLambda::Upper() const
 {
-	// Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+	Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 	// std::cout << "XU_" << "\n" << XU_.transpose().format(CleanFmt) << std::endl;
 	return XU_;
 }
@@ -501,7 +501,7 @@ void MotionConstrCommonDot::computeMatrix(const std::vector<rbd::MultiBody>& mbs
 	// fill inertia matrix part
 	A_.block(0, alphaDBegin_, nrDof_, nrDof_) = fd_.H();
 
-	std::cout << "nRdof: " << nrDof_ << std::endl;
+	// std::cout << "nRdof: " << nrDof_ << std::endl;
 
 	for(std::size_t i = 0; i < cont_.size(); ++i)
 	{
@@ -525,7 +525,6 @@ void MotionConstrCommonDot::computeMatrix(const std::vector<rbd::MultiBody>& mbs
 				jacLambda_.block(0, 0, nrLambda, cd.jac.dof()),
 				fullJacLambda_);
 
-
 			// A_.block(0, cd.lambdaBegin + lambdaOffset, nrDof_, nrLambda).noalias() =
 			// 		fullJacLambda_.block(0, 0, nrLambda, nrDof_).transpose();
 			A_.block(0, cd.lambdaBegin + lambdaOffset, nrDof_, nrLambda).noalias() =
@@ -538,12 +537,12 @@ void MotionConstrCommonDot::computeMatrix(const std::vector<rbd::MultiBody>& mbs
 		}
 	}
 
-	// A_.block(0, lambdaBegin_, nrDof_, 32) *= dt_;
+	// A_.block(0, lambdaBegin_, nrDof_, 32) *= -1;
 
 	Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 	std::cout << "last_lambda in MotionConstrDot" << "\n" << last_lambda_.transpose().format(CleanFmt) << std::endl;
-	std::cout << "dim(fullJacLambda): " << fullJacLambda_.rows() << ", " << fullJacLambda_.cols() << std::endl;
-	std::cout << "fullJacLambda_" << "\n" << fullJacLambda_.format(CleanFmt) << std::endl;
+	// std::cout << "dim(fullJacLambda): " << fullJacLambda_.rows() << ", " << fullJacLambda_.cols() << std::endl;
+	// std::cout << "fullJacLambda_" << "\n" << fullJacLambda_.format(CleanFmt) << std::endl;
 
 	// BEq = -C
 	// AL_ = -fd_.C();
@@ -584,7 +583,8 @@ void MotionConstrDot::update(const std::vector<rbd::MultiBody>& mbs,
 	const std::vector<rbd::MultiBodyConfig>& mbcs,
 	const SolverData& /* data */)
 {
-	std::cout << "MotionConstrDot update" << std::endl;
+	// std::cout << "MotionConstrDot update" << std::endl;
+	// std::cout << "torquerows: " << torqueL_.rows() << " " << torqueU_.rows() << std::endl;
 
 	computeMatrix(mbs, mbcs);
 

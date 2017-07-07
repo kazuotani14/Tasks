@@ -2238,6 +2238,55 @@ const Eigen::VectorXd& ForceSmoothTask::C() const
 	return C_;
 }
 
+ForceSmoothDotTask::ForceSmoothDotTask(double weight):
+	Task(weight),
+	begin_(0),
+	nrLambda_(0),
+	lambda1_(),
+	Q_(),
+	C_()
+{
+	std::cout << "ForceSmoothDotTask init" << std::endl;
+}
+
+void ForceSmoothDotTask::updateNrVars(const std::vector<rbd::MultiBody>& /*mbs*/,
+						  const SolverData& data)
+{
+	std::cout << "ForceSmoothTask updateNrVars" << std::endl;
+
+	begin_ = data.lambdaBegin();
+
+	nrLambda_ = data.nrContacts() * 16; // each planar contact has 4 cones, 16 lambdas
+
+	Q_.setZero(nrLambda_, nrLambda_);
+    C_.setZero(nrLambda_);
+	lambda1_.setZero(nrLambda_);
+
+	Q_ = Eigen::MatrixXd::Identity(nrLambda_, nrLambda_) * dt_;
+}
+
+void ForceSmoothDotTask::update(const std::vector<rbd::MultiBody>& /*mbs*/,
+					const std::vector<rbd::MultiBodyConfig>& /*mbcs*/,
+					const SolverData& /*data*/)
+{
+	C_ = 2 * dt_ * lambda1_;
+}
+
+// Updates lambda vectors from past solutions, to use in calcC()
+void ForceSmoothDotTask::update_lambda(Eigen::VectorXd& l)
+{
+	lambda1_ = l;
+}
+
+const Eigen::MatrixXd& ForceSmoothDotTask::Q() const
+{
+	return Q_;
+}
+
+const Eigen::VectorXd& ForceSmoothDotTask::C() const
+{
+	return C_;
+}
 
 } // namespace qp
 
