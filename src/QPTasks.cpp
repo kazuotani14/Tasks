@@ -1960,11 +1960,18 @@ const Eigen::VectorXd& VectorOrientationTask::normalAcc()
 Eigen helper functions - TODO move these somewhere else
 */
 
-Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
 
-void print_eigen(std::string name, const Eigen::MatrixXd& mat)
+Eigen::IOFormat CleanFmt(3, 0, ", ", "\n", "", "");
+
+void print_eigen(const std::string name, const Eigen::MatrixXd& mat)
 {
-	std::cout << name << "\n" << mat.format(CleanFmt) << "\n---\n";
+  if(mat.cols() == 1)
+  {
+    std::cout << name << ": " << mat.transpose().format(CleanFmt) << std::endl;
+  }
+  else{
+    std::cout << name << ":\n" << mat.format(CleanFmt) << std::endl;
+  }
 }
 
 void print_dims(std::string name, const Eigen::MatrixXd& mat)
