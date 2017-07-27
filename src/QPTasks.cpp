@@ -26,6 +26,7 @@
 
 // Eigen
 #include <Eigen/Geometry>
+#include <Eigen/Eigenvalues>
 
 // RBDyn
 #include <RBDyn/MultiBody.h>
@@ -1956,7 +1957,55 @@ const Eigen::VectorXd& VectorOrientationTask::normalAcc()
 	return vot_.normalAcc();
 }
 
+/*
+	BELOW IS KAZU TESTING STUFF
+*/
+
+/*
+Eigen helper functions - TODO move these somewhere else
+*/
+
+Eigen::IOFormat CleanFmt(4, 0, ", ", "\n", "[", "]");
+
+void print_eigen(std::string name, const Eigen::MatrixXd& mat)
+{
+	std::cout << name << "\n" << mat.format(CleanFmt) << "\n---\n";
+}
+
+void print_dims(std::string name, const Eigen::MatrixXd& mat)
+{
+	std::cout << "dim(" << name << "): " << mat.rows() << ", " << mat.cols() << std::endl;
+}
+
+void check_positive_definite(const Eigen::MatrixXd& mat)
+{
+	Eigen::LLT<Eigen::MatrixXd> lltOfMat(mat); // compute the Cholesky decomposition of A
+	if(lltOfMat.info() == Eigen::NumericalIssue)
+	{
+		std::cout << "Matrix is NOT positive semidefinite!" << std::endl;
+	}
+	else
+	{
+		std::cout << "Matrix is positive semidefinite!" << std::endl;
+	}
+}
+
+void print_eigvecs(const Eigen::MatrixXd& mat)
+{
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(mat);
+	if (eigensolver.info() != Eigen::Success){
+		std::cout << "Failed to compute eigenvectors." << std::endl;
+		return;
+	}
+	std::cout << "The eigenvalues of matrix are:\n" << eigensolver.eigenvalues().format(CleanFmt) << std::endl;
+	// cout << "Here's a matrix whose columns are eigenvectors of A \n"
+	// 	 << "corresponding to these eigenvalues:\n"
+	// 	 << eigensolver.eigenvectors() << endl;
+}
+
+
+
+
 } // namespace qp
 
 } // namespace tasks
-
