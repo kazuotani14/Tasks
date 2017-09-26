@@ -81,7 +81,7 @@ inline void fillQC(const std::vector<Task*>& tasks, int nrVars,
 
 /**
 	* Fill the \f$ A \f$ matrix and the \f$ L \f$ and \f$ U \f$ bounds vectors
-	* based on the equality constaint list.
+	* based on the equality constraint list.
 	*/
 inline int fillEq(const std::vector<Equality*>& eq, int nrVars,
 	int nrALines, Eigen::MatrixXd& A, Eigen::VectorXd& AL, Eigen::VectorXd& AU)
@@ -145,9 +145,12 @@ inline int fillGenInEq(const std::vector<GenInequality*>& genInEq, int nrVars,
 		// ineq constraint can return a matrix with more line
 		// than the number of constraint
 		int nrConstr = genInEq[i]->nrGenInEq();
+
 		const Eigen::MatrixXd& Ai = genInEq[i]->AGenInEq();
+
 		const Eigen::VectorXd& ALi = genInEq[i]->LowerGenInEq();
 		const Eigen::VectorXd& AUi = genInEq[i]->UpperGenInEq();
+
 
 		A.block(nrALines, 0, nrConstr, nrVars) =
 			Ai.block(0, 0, nrConstr, nrVars);
@@ -223,6 +226,11 @@ inline int fillInEq(const std::vector<Inequality*>& inEq, int nrVars,
 inline int fillGenInEq(const std::vector<GenInequality*>& genInEq, int nrVars,
 	int nrALines, Eigen::MatrixXd& A, Eigen::VectorXd& b)
 {
+		//std::cout << "tasks::qp::fillGenInEq" << std::endl;
+		//std::cout << "nrVars: " << nrVars << ", nrALines: " << nrALines << std::endl;
+		//std::cout << "A: " << A.rows() << ", " << A.cols() << std::endl;
+		//std::cout << "b: " << b.size() << std::endl;
+
 	for(std::size_t i = 0; i < genInEq.size(); ++i)
 	{
 		// ineq constraint can return a matrix with more line
@@ -232,12 +240,13 @@ inline int fillGenInEq(const std::vector<GenInequality*>& genInEq, int nrVars,
 		const Eigen::VectorXd& ALi = genInEq[i]->LowerGenInEq();
 		const Eigen::VectorXd& AUi = genInEq[i]->UpperGenInEq();
 
+
+		//std::cout << "Ai (constr): " << Ai.rows() << ", " << Ai.cols() << std::endl;
 		A.block(nrALines, 0, nrConstr, nrVars) =
 			-Ai.block(0, 0, nrConstr, nrVars);
 		b.segment(nrALines, nrConstr) = -ALi.head(nrConstr);
 
 		nrALines += nrConstr;
-
 		A.block(nrALines, 0, nrConstr, nrVars) =
 			Ai.block(0, 0, nrConstr, nrVars);
 		b.segment(nrALines, nrConstr) = AUi.head(nrConstr);

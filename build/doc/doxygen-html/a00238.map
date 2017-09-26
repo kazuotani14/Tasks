@@ -1,0 +1,4 @@
+<map id="tasks::qp::GenQPSolver" name="tasks::qp::GenQPSolver">
+<area shape="rect" id="node2" href="$a00049.html" title="GenQPSolver interface implementation with the LSSOL QP solver. " alt="" coords="5,80,188,107"/>
+<area shape="rect" id="node3" href="$a00074.html" title="GenQPSolver interface implementation with the QLD QP solver. " alt="" coords="212,80,379,107"/>
+</map>

@@ -1,0 +1,7 @@
+INPUT                  = /home/icubuser/mc/install/Tasks/src
+IMAGE_PATH             = /home/icubuser/mc/install/Tasks/doc/pictures
+FILE_PATTERNS          = *.h *.idl
+TAGFILES = \
+"/usr/local/share/doc/SpaceVecAlg/doxygen-html/SpaceVecAlg.doxytag = /usr/local/share/doc/SpaceVecAlg/doxygen-html" \
+"/usr/local/share/doc/RBDyn/doxygen-html/RBDyn.doxytag = /usr/local/share/doc/RBDyn/doxygen-html" \
+"/usr/local/share/doc/sch-core/doxygen-html/sch-core.doxytag = /usr/local/share/doc/sch-core/doxygen-html"

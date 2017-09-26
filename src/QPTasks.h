@@ -1328,6 +1328,74 @@ private:
 	int robotIndex_;
 };
 
+// Stuff below is added by Kazu for ICRA paper
+
+/*
+	Regularizes all contact forces - aim is to minimize interaction forces
+*/
+class TASKS_DLLAPI ForceMinimizationTask : public Task
+{
+public:
+	ForceMinimizationTask(double weight);
+
+	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+		const SolverData& data);
+	virtual void update(const std::vector<rbd::MultiBody>& mbs,
+			const std::vector<rbd::MultiBodyConfig>& mbcs,
+			const SolverData& data);
+
+	virtual std::pair<int, int> begin() const
+	{
+		return std::make_pair(begin_, begin_);
+	}
+
+	virtual const Eigen::MatrixXd& Q() const { return Q_; };
+	virtual const Eigen::VectorXd& C() const { return C_; };
+
+private:
+	int begin_;
+	int nrLambda_;
+
+	Eigen::MatrixXd Q_;
+	Eigen::VectorXd C_;
+};
+
+class TASKS_DLLAPI ForceSmoothDotTask : public Task //Task is defined in Tasks/QPSolver.h
+{
+public:
+	ForceSmoothDotTask(double weight);
+
+
+
+	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+							  const SolverData& data);
+	virtual void update(const std::vector<rbd::MultiBody>& mbs,
+						const std::vector<rbd::MultiBodyConfig>& mbcs,
+						const SolverData& data);
+
+	void update_lambda(Eigen::VectorXd& lambda1);
+
+	virtual std::pair<int, int> begin() const
+	{
+		return std::make_pair(begin_, begin_);
+	}
+
+	virtual const Eigen::MatrixXd& Q() const { return Q_; };
+	virtual const Eigen::VectorXd& C() const { return C_; };
+
+private:
+	int begin_;
+	int nrLambda_;
+
+	double dt_ = 0.005;
+	Eigen::VectorXd lambda1_; // past lambdas
+
+	Eigen::VectorXd alpha_ref_;
+
+	Eigen::MatrixXd Q_;
+	Eigen::VectorXd C_;
+};
+
 } // namespace qp
 
 } // namespace tasks

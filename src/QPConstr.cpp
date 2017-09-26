@@ -97,6 +97,7 @@ void JointLimitsConstr::update(const std::vector<rbd::MultiBody>& /* mbs */,
 	const std::vector<rbd::MultiBodyConfig>& mbcs,
 	const SolverData& /* data */)
 {
+	std::cout << "JointLimitsConstr update" << std::endl;
 	const rbd::MultiBodyConfig& mbc = mbcs[robotIndex_];
 
 	double dts = step_*step_*0.5;
@@ -1532,6 +1533,149 @@ const Eigen::VectorXd& ImageConstr::bInEq() const
 	return bInEq_;
 }
 
+
+
+// Below is Kazu's stuff for ICRA paper: human-robot interaction as multi-robot QP
+
+/*
+    Joint acceleration constraint, for human-robot QP formulation (Kazu)
+*/
+
+
+JointAccConstr::JointAccConstr(const std::vector<rbd::MultiBody>& mbs,
+	int robotIndex, double slack):
+	lower_(), upper_(),
+	robotIndex_(robotIndex),
+	alphaDBegin_(-1),
+	alphaDOffset_(mbs[robotIndex].joint(0).dof() > 1 ? mbs[robotIndex].joint(0).dof() : 0),
+	alphaDVec_(),
+	slack_(slack),
+	nrVars_()
+{
+	assert(std::size_t(robotIndex_) < mbs.size() && robotIndex_ >= 0);
+
+	const rbd::MultiBody& mb = mbs[robotIndex_];
+
+	nrVars_ = mb.nrDof() - alphaDOffset_;
+	alphaDVec_.setZero(nrVars_);
+	std::cout << "JointAccConstr nrVars: " << nrVars_ << std::endl;
+	//alphaDVec_(31) = 0.01;
+}
+
+
+void JointAccConstr::updateNrVars(const std::vector<rbd::MultiBody>& mbs ,
+	const SolverData& data)
+{
+	alphaDBegin_ = data.alphaDBegin(robotIndex_) + alphaDOffset_;
+	int totalVars = data.nrVars();
+
+	lower_.setConstant(nrVars_, -std::numeric_limits<double>::infinity());
+	upper_.setConstant(nrVars_, std::numeric_limits<double>::infinity());
+
+	//AEq_.setZero(nrVars_, totalVars);
+	//AEq_.block(0, alphaDBegin_, nrVars_, nrVars_) = Eigen::MatrixXd::Identity(nrVars_, nrVars_);
+
+	// Tests to see what I info I can get out of mbs and data for contact constraints
+	// std::cout << "Total # of variables: " << totalVars << " " << data.totalAlphaD() << " " << data.totalLambda() << std::endl;
+    //     std::cout << "lambdabegin: " << data.lambdaBegin() << " " << data.nrUniLambda() << " " << data.nrBiLambda() << std::endl;
+	// int nrContacts = data.nrContacts();
+	// std::cout << "nrContacts: " << nrContacts << std::endl;
+	//for (int i=0; i<nrContacts; i++) std::cout << data.lambda(i) << std::endl;
+}
+
+
+void JointAccConstr::update(const std::vector<rbd::MultiBody>& /* mbs */,
+	const std::vector<rbd::MultiBodyConfig>& /* mbcs  */,
+	const SolverData& /* data */)
+{
+	//std::cout << nrVars_ << std::endl;
+	//bEq_ = alphaDVec_;
+/*
+	double slack;
+	if(!started_following_ || iterations_since_start_<200) {
+		std::cout << "loose slack" << std::endl;
+		slack = 3.0;
+	}
+	else {
+		std::cout << "tight slack" << std::endl;
+		slack = 0.001;
+	}
+	if(started_following_) iterations_since_start_++;
+*/
+
+	// double slack = 0.01;
+	lower_ = alphaDVec_ -  Eigen::VectorXd::Constant(nrVars_, slack_);
+	upper_ = alphaDVec_ +  Eigen::VectorXd::Constant(nrVars_, slack_);
+
+	//std::cout << "JointAccConstr: " << std::endl;
+	//std::cout << alphaDVec_ << std::endl;
+}
+
+void JointAccConstr::update_alphaD(Eigen::VectorXd& alphad_des)
+{
+	if((alphad_des.array() > 0.001).any()) {
+		started_following_ = true;
+	}
+	alphaDVec_ = alphad_des;
+}
+
+
+
+
+/**
+ LambdaConstr
+*/
+
+LambdaConstr::LambdaConstr(int robotIndex):
+	lambdaConstrBegin_(-1),
+	AEq_(), bEq_(),
+	lambdaVec_()
+{
+	lambdaVec_.setZero(16); // assume one contact with four basis vectors
+}
+
+
+void LambdaConstr::updateNrVars(const std::vector<rbd::MultiBody>& mbs ,
+	const SolverData& data)
+{
+	// Hard code for constraint index for now - assume one contact
+	// This is ok because this constraint is only used on the human QP, where number and order of contacts are known
+	lambdaConstrBegin_ = data.lambdaBegin() + 32;
+	nrVars_ = 16;
+
+	// Set A*lambda = b -> I*lambda = lambda_des
+	int totalVars = data.nrVars();
+	AEq_.setZero(nrVars_, totalVars);
+	AEq_.block(0, lambdaConstrBegin_, nrVars_, nrVars_) = Eigen::MatrixXd::Identity(nrVars_, nrVars_);
+
+/*
+	lambdaBegin_ = data.lambdaBegin();
+	const std::vector<BilateralContact>& allC = data.allContacts();
+	for(std::size_t i = 0; i < allC.size(); ++i)
+	{
+		cont_.push_back({allC[i].contactId,
+				data.lambdaBegin(int(i)),
+				allC[i].nrLambda()});
+	}
+*/
+}
+
+void LambdaConstr::update(const std::vector<rbd::MultiBody>& mbs,
+	const std::vector<rbd::MultiBodyConfig>& mbc,
+	const SolverData& data)
+{
+	bEq_ = lambdaVec_;
+}
+
+void LambdaConstr::update_lambda(Eigen::VectorXd& lambda_des)
+{
+	if(lambda_des.size() != lambdaVec_.size())
+	{
+		std::cout << "ERROR: vector given to LambdaConstr::update_lambda has wrong size" << std::endl;
+		return;
+	}
+	lambdaVec_ = lambda_des;
+}
 
 
 } // namespace qp

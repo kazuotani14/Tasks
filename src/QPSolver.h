@@ -158,12 +158,11 @@ private:
 	std::vector<Bound*> boundConstr_;
 
 	std::vector<Task*> tasks_;
+	std::unique_ptr<GenQPSolver> solver_;
 
 	SolverData data_;
 
 	int maxEqLines_, maxInEqLines_, maxGenInEqLines_;
-
-	std::unique_ptr<GenQPSolver> solver_;
 
 	boost::timer::cpu_timer solverTimer_, solverAndBuildTimer_;
 };

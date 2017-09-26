@@ -1956,7 +1956,36 @@ const Eigen::VectorXd& VectorOrientationTask::normalAcc()
 	return vot_.normalAcc();
 }
 
+
+// Below is stuff for Kazu's ICRA paper on human-humanoid collaborative tasks
+
+ForceMinimizationTask::ForceMinimizationTask(double weight):
+	Task(weight), 
+	begin_(0),
+	nrLambda_(0),
+	Q_(),
+	C_()
+{
+	// do nothing here
+}
+
+
+void ForceMinimizationTask::updateNrVars(const std::vector<rbd::MultiBody>& mbs, const SolverData& data)
+{
+	begin_ = data.lambdaBegin();
+	nrLambda_ = data.totalLambda(); // each contact has 4 cones->16 lambdas
+	Q_.setIdentity(nrLambda_, nrLambda_);
+	C_.setZero(nrLambda_);
+}
+
+
+void ForceMinimizationTask::update(const std::vector<rbd::MultiBody>& /* mbs */,
+		const std::vector<rbd::MultiBodyConfig>& /* mbcs */,
+		const SolverData& /* data */)
+{
+	// do nothing here
+}
+
 } // namespace qp
 
 } // namespace tasks
-

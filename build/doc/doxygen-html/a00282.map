@@ -1,0 +1,7 @@
+<map id="tasks::qp::MotionConstrCommon" name="tasks::qp::MotionConstrCommon">
+<area shape="rect" id="node5" href="$a00052.html" title="tasks::qp::MotionConstr" alt="" coords="23,244,186,271"/>
+<area shape="rect" id="node7" href="$a00054.html" title="Use polynome in function of q to compute torque limits. " alt="" coords="211,244,399,271"/>
+<area shape="rect" id="node2" href="$a00015.html" title="tasks::qp::ConstraintFunction\l\&lt; GenInequality \&gt;" alt="" coords="107,80,302,121"/>
+<area shape="rect" id="node3" href="$a00014.html" title="tasks::qp::Constraint" alt="" coords="74,5,218,32"/>
+<area shape="rect" id="node6" href="$a00055.html" title="tasks::qp::MotionSpringConstr" alt="" coords="5,319,204,345"/>
+</map>

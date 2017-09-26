@@ -39,6 +39,7 @@ QLDQPSolver::QLDQPSolver():
 	Q_(),C_(),
 	nrAeqLines_(0), nrAineqLines_(0)
 {
+	std::cout << "starting QLDQPSolver" << std::endl;
 }
 
 
@@ -49,6 +50,8 @@ void QLDQPSolver::updateSize(int nrVars, int nrEq, int nrInEq, int nrGenInEq)
 
 	Aeq_.resize(maxAeqLines, nrVars);
 	Aineq_.resize(maxAineqLines, nrVars);
+	
+	//std::cout << "QLDQPSolver::updateSize Aineq_: " << Aineq_.rows() << ", " << Aineq_.cols() << std::endl;
 
 	beq_.resize(maxAeqLines);
 	bineq_.resize(maxAineqLines);
@@ -79,6 +82,8 @@ void QLDQPSolver::updateMatrix(
 	Q_.setZero();
 	C_.setZero();
 
+	//std::cout << "QLDQPSolver::updateMatrix. Aineq_: " << Aineq_.rows() << ", " << Aineq_.cols() << std::endl;
+
 	const int nrVars = int(Q_.rows());
 
 	nrAeqLines_ = 0;
@@ -94,6 +99,8 @@ void QLDQPSolver::updateMatrix(
 
 bool QLDQPSolver::solve()
 {
+	//std::cout << "Aeq: " << Aeq_.rows() << " " << Aeq_.cols() << std::endl;
+
 	bool success = qld_.solve(Q_, C_,
 		Aeq_.block(0, 0, nrAeqLines_, int(Aeq_.cols())), beq_.segment(0, nrAeqLines_),
 		Aineq_.block(0, 0, nrAineqLines_, int(Aineq_.cols())), bineq_.segment(0, nrAineqLines_),

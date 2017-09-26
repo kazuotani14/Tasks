@@ -555,7 +555,7 @@ public:
 		* \f$ \underline{v} \in \mathbb{R}^{n} \f$ and
 		* \f$ \overline{v} \in \mathbb{R}^{n} \f$.
 		*/
-	void addBoundedSpeed(const std::vector<rbd::MultiBody>& mbs, 
+	void addBoundedSpeed(const std::vector<rbd::MultiBody>& mbs,
 		const std::string& bodyName,
 		const Eigen::Vector3d& bodyPoint, const Eigen::MatrixXd& dof,
 		const Eigen::VectorXd& speed);
@@ -783,7 +783,83 @@ private:
 };
 
 
+// Below is Kazu's stuff for ICRA paper: human-robot interaction as multi-robot QP
+
+class TASKS_DLLAPI JointAccConstr : public ConstraintFunction<Bound>
+{
+public:
+	/**
+		* @param mbs Multi-robot system.
+		* @param robotIndex Constrained robot Index in mbs.
+		* @param bound Articular position bounds.
+		* @param step Time step in second.
+		*/
+	JointAccConstr(const std::vector<rbd::MultiBody>& mbs, int robotIndex, double slack = 0.0);
+
+	void update_alphaD(Eigen::VectorXd& alphad_des);
+
+	// Constraint
+	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+		const SolverData& data);
+
+	virtual void update(const std::vector<rbd::MultiBody>& mbs,
+		const std::vector<rbd::MultiBodyConfig>& mbcs,
+		const SolverData& data);
+
+	virtual std::string nameBound() const {return "JointAccConstr";};
+	virtual std::string descBound(const std::vector<rbd::MultiBody>& mbs, int line) {return "";};
+
+	virtual int beginVar() const {return alphaDBegin_;};
+	virtual int maxEq() const {return alphaDVec_.size();};
+	virtual int nrEq() const {return alphaDVec_.size();};
+
+	virtual const Eigen::VectorXd& Lower() const {return lower_;};
+	virtual const Eigen::VectorXd& Upper() const {return upper_;};
+
+private:
+	Eigen::VectorXd lower_, upper_;
+	int robotIndex_, alphaDBegin_, alphaDOffset_;
+	Eigen::VectorXd alphaDVec_;
+	double slack_;
+	int nrVars_;
+	bool started_following_ = false;
+	int iterations_since_start_ = 0;
+};
+
+class TASKS_DLLAPI LambdaConstr : public ConstraintFunction<Equality>
+{
+public:
+	LambdaConstr(int robotIndex);
+
+	void update_lambda(Eigen::VectorXd& lambda_des);
+
+	// Constraint
+	virtual void updateNrVars(const std::vector<rbd::MultiBody>& mbs,
+		const SolverData& data);
+	virtual void update(const std::vector<rbd::MultiBody>& mbs,
+		const std::vector<rbd::MultiBodyConfig>& mbc,
+		const SolverData& data);
+
+	// Description
+	virtual std::string nameEq() const {return "LambdaConstr";};
+	virtual std::string descEq(const std::vector<rbd::MultiBody>& mbs, int line) {return "put info here";};
+
+	// Equality Constraint
+	virtual int beginVar() const {return lambdaConstrBegin_;};
+	virtual int maxEq() const {return lambdaVec_.size();};
+	virtual int nrEq() const {return lambdaVec_.size();};
+
+	virtual const Eigen::MatrixXd& AEq() const {return AEq_;};
+	virtual const Eigen::VectorXd& bEq() const {return bEq_;};
+
+private:
+	int robotIndex_, lambdaConstrBegin_;
+        int nrVars_;
+	Eigen::MatrixXd AEq_;
+	Eigen::VectorXd bEq_;
+        Eigen::VectorXd lambdaVec_;
+};
+
 } // namespace qp
 
 } // namespace tasks
-

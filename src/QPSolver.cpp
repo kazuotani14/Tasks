@@ -119,6 +119,7 @@ int accumMaxLines(int acc, T* constr)
 
 void QPSolver::updateConstrSize()
 {
+	//std::cout << "QPSolver::updateConstrSize" << std::endl;
 	maxEqLines_ = std::accumulate(eqConstr_.begin(), eqConstr_.end(), 0,
 		accumMaxLines<Equality>);
 	maxInEqLines_ = std::accumulate(inEqConstr_.begin(), inEqConstr_.end(), 0,
@@ -336,7 +337,7 @@ void QPSolver::addConstraint(const std::vector<rbd::MultiBody>& mbs,
 	if(std::find(constr_.begin(), constr_.end(), co) == constr_.end())
 	{
 		constr_.push_back(co);
-		// check if nrVars has been call at least one
+		// check if nrVars has been call at least once
 		if(data_.nrVars_ > 0)
 		{
 			co->updateNrVars(mbs, data_);
@@ -492,6 +493,7 @@ boost::timer::cpu_times QPSolver::solveAndBuildTime() const
 void QPSolver::preUpdate(const std::vector<rbd::MultiBody>& mbs,
 												const std::vector<rbd::MultiBodyConfig>& mbcs)
 {
+	//std::cout << "QPSolver::preUpdate" << std::endl;
 	data_.computeNormalAccB(mbs, mbcs);
 	for(std::size_t i = 0; i < constr_.size(); ++i)
 	{

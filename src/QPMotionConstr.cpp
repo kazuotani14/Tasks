@@ -162,6 +162,7 @@ MotionConstrCommon::MotionConstrCommon(const std::vector<rbd::MultiBody>& mbs,
 	AL_(nrDof_),
 	AU_(nrDof_)
 {
+	//std::cout << "MotionConstrCommon nrDof: " << nrDof_ << std::endl;
 	assert(std::size_t(robotIndex_) < mbs.size() && robotIndex_ >= 0);
 }
 
@@ -229,6 +230,7 @@ void MotionConstrCommon::updateNrVars(const std::vector<rbd::MultiBody>& mbs,
 	A_.setZero(nrDof_, data.nrVars());
 	jacLambda_.resize(data.totalLambda(), nrDof_);
 	fullJacLambda_.resize(data.totalLambda(), nrDof_);
+	//std::cout << "MotionConstr::updateNrVars A: " << A_.rows() << ", " << A_.cols() << std::endl;
 }
 
 
@@ -279,11 +281,16 @@ void MotionConstrCommon::computeMatrix(const std::vector<rbd::MultiBody>& mbs,
 	// BEq = -C
 	AL_ = -fd_.C();
 	AU_ = -fd_.C();
+
+        //std::cout << "A_: " << A_ << std::endl;
+        //std::cout << "AL_: " << AL_ << std::endl;
+
 }
 
 
 int MotionConstrCommon::maxGenInEq() const
 {
+	//std::cout << "MotionConstrCommon::maxGenInEq(): " << A_.rows() << std::endl;
 	return int(A_.rows());
 }
 
@@ -340,7 +347,11 @@ void MotionConstr::update(const std::vector<rbd::MultiBody>& mbs,
 	const std::vector<rbd::MultiBodyConfig>& mbcs,
 	const SolverData& /* data */)
 {
+	//std::cout << "MotionConstr::update A: " << A_.rows() << ", " << A_.cols() << std::endl;
 	computeMatrix(mbs, mbcs);
+
+	// std::cout << "AL for " << torqueL_.rows() << "\n" << AL_ << std::endl;
+	// std::cout << "AU for " << torqueU_.rows() << "\n" << AU_ << std::endl;
 
 	AL_.head(torqueL_.rows()) += torqueL_;
 	AU_.head(torqueU_.rows()) += torqueU_;

@@ -38,6 +38,7 @@ LSSOLQPSolver::LSSOLQPSolver():
 	Q_(),C_(),
 	nrALines_(0)
 {
+	std::cout << "starting LSSOLQPSolver" << std::endl;
 	lssol_.warm(true);
 	lssol_.feasibilityTol(1e-6);
 }
@@ -89,6 +90,7 @@ void LSSOLQPSolver::updateMatrix(
 
 bool LSSOLQPSolver::solve()
 {
+
 	bool success = lssol_.solve(Q_, C_,
 		A_.block(0, 0, nrALines_, int(A_.cols())), int(A_.rows()),
 		AL_.segment(0, nrALines_), AU_.segment(0, nrALines_), XL_, XU_);

@@ -1,0 +1,5 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node1" href="$a00035.html" title="Generic QP solver abstract interface. " alt="" coords="5,31,169,57"/>
+<area shape="rect" id="node2" href="$a00049.html" title="GenQPSolver interface implementation with the LSSOL QP solver. " alt="" coords="217,5,400,32"/>
+<area shape="rect" id="node3" href="$a00074.html" title="GenQPSolver interface implementation with the QLD QP solver. " alt="" coords="225,56,392,83"/>
+</map>

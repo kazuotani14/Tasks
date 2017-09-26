@@ -1,0 +1,36 @@
+warning: source /home/icubuser/mc/install/Tasks/include is not a readable file or directory... skipping.
+warning: source /home/icubuser/mc/install/Tasks/doc/pictures is not a readable file or directory... skipping.
+error: style sheet /home/icubuser/mc/install/Tasks/build/doc/doxygen.css does not exist or is not readable!/home/icubuser/mc/install/Tasks/src/Tasks.h:185: warning: The following parameters of tasks::TransformTask::TransformTask(const rbd::MultiBody &mb, const std::string &bodyName, const sva::PTransformd &X_0_t, const sva::PTransformd &X_b_p=sva::PTransformd::Identity(), const Eigen::Matrix3d &E_0_c=Eigen::Matrix3d::Identity()) are not documented:
+  parameter 'mb'
+  parameter 'bodyName'
+  parameter 'X_0_t'
+  parameter 'X_b_p'
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:545: warning: argument 'bodyId' of command @param is not found in the argument list of tasks::qp::BoundedSpeedConstr::addBoundedSpeed(const std::vector< rbd::MultiBody > &mbs, const std::string &bodyName, const Eigen::Vector3d &bodyPoint, const Eigen::MatrixXd &dof, const Eigen::VectorXd &speed)
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:558: warning: The following parameters of tasks::qp::BoundedSpeedConstr::addBoundedSpeed(const std::vector< rbd::MultiBody > &mbs, const std::string &bodyName, const Eigen::Vector3d &bodyPoint, const Eigen::MatrixXd &dof, const Eigen::VectorXd &speed) are not documented:
+  parameter 'bodyName'
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:564: warning: argument 'bodyId' of command @param is not found in the argument list of tasks::qp::BoundedSpeedConstr::addBoundedSpeed(const std::vector< rbd::MultiBody > &mbs, const std::string &bodyName, const Eigen::Vector3d &bodyPoint, const Eigen::MatrixXd &dof, const Eigen::VectorXd &lowerSpeed, const Eigen::VectorXd &upperSpeed)
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:576: warning: The following parameters of tasks::qp::BoundedSpeedConstr::addBoundedSpeed(const std::vector< rbd::MultiBody > &mbs, const std::string &bodyName, const Eigen::Vector3d &bodyPoint, const Eigen::MatrixXd &dof, const Eigen::VectorXd &lowerSpeed, const Eigen::VectorXd &upperSpeed) are not documented:
+  parameter 'bodyName'
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:233: warning: argument 'r1BodyId' of command @param is not found in the argument list of tasks::qp::CollisionConstr::addCollision(const std::vector< rbd::MultiBody > &mbs, int collId, int r1Index, const std::string &r1BodyName, sch::S_Object *body1, const sva::PTransformd &X_op1_o1, int r2Index, const std::string &r2BodyName, sch::S_Object *body2, const sva::PTransformd &X_op2_o2, double di, double ds, double damping, double dampingOff=0.)
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:233: warning: argument 'r2BodyId' of command @param is not found in the argument list of tasks::qp::CollisionConstr::addCollision(const std::vector< rbd::MultiBody > &mbs, int collId, int r1Index, const std::string &r1BodyName, sch::S_Object *body1, const sva::PTransformd &X_op1_o1, int r2Index, const std::string &r2BodyName, sch::S_Object *body2, const sva::PTransformd &X_op2_o2, double di, double ds, double damping, double dampingOff=0.)
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:256: warning: The following parameters of tasks::qp::CollisionConstr::addCollision(const std::vector< rbd::MultiBody > &mbs, int collId, int r1Index, const std::string &r1BodyName, sch::S_Object *body1, const sva::PTransformd &X_op1_o1, int r2Index, const std::string &r2BodyName, sch::S_Object *body2, const sva::PTransformd &X_op2_o2, double di, double ds, double damping, double dampingOff=0.) are not documented:
+  parameter 'r1BodyName'
+  parameter 'r2BodyName'
+/home/icubuser/mc/install/Tasks/src/QPContactConstr.h:69: warning: The following parameters of tasks::qp::ContactConstrCommon::addDofContact(const ContactId &contactId, const Eigen::MatrixXd &dof) are not documented:
+  parameter 'contactId'
+/home/icubuser/mc/install/Tasks/src/QPContacts.h:47: warning: argument 'dir' of command @param is not found in the argument list of tasks::qp::FrictionCone::FrictionCone(const Eigen::Matrix3d &frame, int nrGen, double mu, double direction=1.)
+/home/icubuser/mc/install/Tasks/src/QPContacts.h:54: warning: The following parameters of tasks::qp::FrictionCone::FrictionCone(const Eigen::Matrix3d &frame, int nrGen, double mu, double direction=1.) are not documented:
+  parameter 'direction'
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:711: warning: argument 'bodyId' of command @param is not found in the argument list of tasks::qp::ImageConstr::addPoint(const std::vector< rbd::MultiBody > &mbs, const std::string &bName, const sva::PTransformd &X_b_p=sva::PTransformd::Identity())
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:717: warning: The following parameters of tasks::qp::ImageConstr::addPoint(const std::vector< rbd::MultiBody > &mbs, const std::string &bName, const sva::PTransformd &X_b_p=sva::PTransformd::Identity()) are not documented:
+  parameter 'bName'
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:699: warning: The following parameters of tasks::qp::ImageConstr::setLimits(const Eigen::Vector2d &min, const Eigen::Vector2d &max, const double iPercent, const double sPercent, const double damping, const double dampingOffsetPercent) are not documented:
+  parameter 'dampingOffsetPercent'
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:791: warning: argument 'bound' of command @param is not found in the argument list of tasks::qp::JointAccConstr::JointAccConstr(const std::vector< rbd::MultiBody > &mbs, int robotIndex, double slack=0.0)
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:791: warning: argument 'step' of command @param is not found in the argument list of tasks::qp::JointAccConstr::JointAccConstr(const std::vector< rbd::MultiBody > &mbs, int robotIndex, double slack=0.0)
+/home/icubuser/mc/install/Tasks/src/QPConstr.h:797: warning: The following parameters of tasks::qp::JointAccConstr::JointAccConstr(const std::vector< rbd::MultiBody > &mbs, int robotIndex, double slack=0.0) are not documented:
+  parameter 'slack'
+/home/icubuser/mc/install/Tasks/src/QPSolver.h:75: warning: argument 'mbc' of command @param is not found in the argument list of tasks::qp::QPSolver::solveNoMbcUpdate(const std::vector< rbd::MultiBody > &mbs, const std::vector< rbd::MultiBodyConfig > &mbcs)
+/home/icubuser/mc/install/Tasks/src/QPSolver.h:79: warning: The following parameters of tasks::qp::QPSolver::solveNoMbcUpdate(const std::vector< rbd::MultiBody > &mbs, const std::vector< rbd::MultiBodyConfig > &mbcs) are not documented:
+  parameter 'mbcs'
+error: Style sheet '/home/icubuser/mc/install/Tasks/build/doc/doxygen.css' specified by HTML_STYLESHEET does not exist!

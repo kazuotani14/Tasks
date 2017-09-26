@@ -1,0 +1,22 @@
+prefix=/usr/local
+exec_prefix=/usr/local
+libdir=/usr/local/lib
+bindir=/usr/local/bin
+pkglibdir=/usr/local/lib/Tasks
+includedir=/usr/local/include
+datarootdir=/usr/local/share
+pkgdatarootdir=/usr/local/share
+docdir=/usr/local/share/doc/Tasks
+doxygendocdir=/usr/local/share/doc/Tasks/doxygen-html
+
+Name: Tasks
+Description: ...
+URL: https://github.com/jorisv//Tasks
+Version: UNKNOWN-dirty
+Requires: eigen3 >= 3.0.0, SpaceVecAlg, eigen-qld, eigen-lssol, sch-core, RBDyn
+Conflicts: 
+Libs: -L${libdir}  -lTasks
+Libs.private: 
+Cflags:  -I${includedir} -I/usr/include -I/usr/include
+
+
